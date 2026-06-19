@@ -2,7 +2,7 @@
 
 This project shows how a manufacturing team can monitor machine events in near real time using Kafka, PostgreSQL, and Grafana.
 
-The business story is a production line that continuously emits machine events such as completed prints, failed prints, warnings, speed readings, and temperature readings. The goal is to help an operations team quickly answer:
+The business story is a QR-printing production line that continuously emits Fabric-aligned events: print quality checks, telemetry, and machine fault logs. The goal is to help an operations team quickly answer:
 
 - Are production events still flowing?
 - Which machines or lines need attention?
@@ -34,7 +34,7 @@ The business layer is organized around production operations:
 
 | Layer | Purpose |
 | --- | --- |
-| Machine events | Simulated production-line signals such as success, failure, warning, temperature, and speed. |
+| Machine events | Simulated `LINE_01` / `QR_PRINTER_01` signals such as `PRINT_EVENT`, `MACHINE_TELEMETRY`, `MACHINE_LOG`, `SUCCESS`, `FAILED`, and `FAULTED`. |
 | Monitoring rules | Thresholds for failure rate, warning volume, temperature, and ingest lag. |
 | Control-room views | PostgreSQL views that convert raw events into current plant status, machine status, and alert feed. |
 | Grafana dashboard | A live operations dashboard for supervisors or support teams. |

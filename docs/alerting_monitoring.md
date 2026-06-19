@@ -149,10 +149,12 @@ Purpose:
 
 Included events:
 
-- `status = 'failed'`
-- `status = 'warning'`
-- `temperature >= 75`
-- `event_type IN ('machine_warning', 'machine_fault')`
+- `print_result = 'FAILED'`
+- `reject_flag = true`
+- `status = 'FAULTED'`
+- `severity IN ('HIGH', 'MEDIUM')`
+- `printhead_temp_c >= 75`
+- `event_type = 'MACHINE_LOG'`
 
 Alert severity:
 

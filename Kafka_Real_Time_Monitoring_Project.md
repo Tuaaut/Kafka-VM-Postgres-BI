@@ -344,16 +344,16 @@ Example event structure:
 ```json
 {
   "event_id": "evt_001",
-  "machine_id": "M001",
-  "line_id": "L01",
-  "event_type": "print_completed",
-  "status": "success",
-  "error_code": null,
-  "temperature": 62.4,
-  "speed": 98.1,
-  "batch_id": "BATCH-001",
-  "qr_code_id": "QR-001",
-  "product_code": "SKU-001",
+  "machine_id": "QR_PRINTER_01",
+  "line_id": "LINE_01",
+  "event_type": "PRINT_EVENT",
+  "status": "SUCCESS",
+  "product_sku": "BEER_330_CAN",
+  "print_result": "SUCCESS",
+  "vision_result": "PASS",
+  "reject_flag": false,
+  "batch_id": "B202606201",
+  "qr_code_id": "B202606201-LINE_01-123456",
   "event_time": "2026-01-01T10:00:00Z"
 }
 ```

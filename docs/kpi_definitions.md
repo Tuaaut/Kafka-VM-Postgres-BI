@@ -132,7 +132,7 @@ dashboard_realtime_summary.successful_events
 Definition:
 
 ```text
-COUNT(*) WHERE status = 'success'
+COUNT(*) WHERE print_result = 'SUCCESS' OR status = 'RUNNING'
 ```
 
 ### Failed Events
@@ -146,7 +146,7 @@ dashboard_realtime_summary.failed_events
 Definition:
 
 ```text
-COUNT(*) WHERE status = 'failed'
+COUNT(*) WHERE print_result = 'FAILED' OR status IN ('FAILED', 'FAULTED')
 ```
 
 ### Warning Events
@@ -160,7 +160,7 @@ dashboard_realtime_summary.warning_events
 Definition:
 
 ```text
-COUNT(*) WHERE status = 'warning'
+COUNT(*) WHERE status = 'FAULTED' OR severity IN ('HIGH', 'MEDIUM')
 ```
 
 ## Quality KPIs
@@ -216,7 +216,7 @@ production_events
 Definition:
 
 ```text
-COUNT(*) WHERE event_type = 'print_failed'
+COUNT(*) WHERE event_type = 'PRINT_EVENT' AND print_result = 'FAILED'
 ```
 
 ### Error Count

@@ -31,8 +31,8 @@ LIMIT 100;
 SELECT
     DATE_TRUNC('minute', event_time) AS event_minute,
     COUNT(*) AS event_count,
-    COUNT(*) FILTER (WHERE status = 'failed') AS failed_events,
-    COUNT(*) FILTER (WHERE status = 'warning') AS warning_events
+    COUNT(*) FILTER (WHERE print_result = 'FAILED' OR status IN ('FAILED', 'FAULTED')) AS failed_events,
+    COUNT(*) FILTER (WHERE status = 'FAULTED' OR severity IN ('HIGH', 'MEDIUM')) AS warning_events
 FROM machine_events_raw
 GROUP BY 1
 ORDER BY 1 DESC;
@@ -53,8 +53,8 @@ SELECT
     machine_id,
     line_id,
     COUNT(*) AS production_events,
-    COUNT(*) FILTER (WHERE status = 'success') AS success_count,
-    COUNT(*) FILTER (WHERE status = 'failed') AS failed_count,
+    COUNT(*) FILTER (WHERE print_result = 'SUCCESS') AS success_count,
+    COUNT(*) FILTER (WHERE print_result = 'FAILED' OR status = 'FAILED') AS failed_count,
     MAX(event_time) AS latest_event_time
 FROM production_events
 GROUP BY machine_id, line_id

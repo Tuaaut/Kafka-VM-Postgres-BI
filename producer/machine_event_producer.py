@@ -18,10 +18,17 @@ EVENTS_PER_BATCH = int(os.getenv("PRODUCER_EVENTS_PER_BATCH", "10"))
 MAX_BATCHES = os.getenv("PRODUCER_MAX_BATCHES")
 MAX_BATCHES = int(MAX_BATCHES) if MAX_BATCHES else None
 
-MACHINES = ["M001", "M002", "M003"]
-LINES = ["L01", "L02"]
-PRODUCTS = ["BEV-QR-250ML", "BEV-QR-500ML", "BEV-QR-1L"]
-ERROR_CODES = ["QR_BLUR", "LOW_INK", "TEMP_HIGH", "SENSOR_MISREAD", "LINE_JAM"]
+LINE_ID = "LINE_01"
+MACHINE_ID = "QR_PRINTER_01"
+PLANNED_SPEED_CPM = 850
+PRODUCT_SKUS = ["BEER_330_CAN", "BEER_500_CAN", "SODA_330_CAN"]
+FAULTS = {
+    "INK_LOW": "Ink level below threshold",
+    "VISION_DIRTY_LENS": "Vision camera lens requires cleaning",
+    "PRINTHEAD_TEMP_HIGH": "Printhead temperature above normal band",
+    "ENCODER_SIGNAL_LOSS": "Conveyor encoder signal unstable",
+    "REJECT_GATE_JAM": "Reject gate did not complete movement",
+}
 
 running = True
 
@@ -40,36 +47,117 @@ def delivery_report(err, msg):
 
 def choose_event_type():
     return random.choices(
-        ["print_completed", "print_failed", "machine_warning", "temperature_reading", "production_counter"],
-        weights=[70, 8, 7, 10, 5],
+        ["PRINT_EVENT", "MACHINE_TELEMETRY", "MACHINE_LOG"],
+        weights=[75, 20, 5],
         k=1,
     )[0]
 
 
-def build_event():
-    event_type = choose_event_type()
-    is_failure = event_type == "print_failed"
-    is_warning = event_type == "machine_warning"
-    machine_id = random.choice(MACHINES)
-
-    temperature = round(random.normalvariate(62, 6), 2)
-    if is_warning:
-        temperature = round(random.normalvariate(82, 4), 2)
-
+def base_event(event_type):
+    now = datetime.now(timezone.utc)
     return {
         "event_id": str(uuid.uuid4()),
-        "machine_id": machine_id,
-        "line_id": random.choice(LINES),
+        "event_time": now.isoformat(),
+        "event_timestamp": now.isoformat(),
+        "line_id": LINE_ID,
+        "machine_id": MACHINE_ID,
         "event_type": event_type,
-        "status": "failed" if is_failure else "warning" if is_warning else "success",
-        "error_code": random.choice(ERROR_CODES) if is_failure or is_warning else None,
-        "temperature": temperature,
-        "speed": round(random.normalvariate(118, 12), 2),
-        "batch_id": f"B{datetime.now(timezone.utc).strftime('%Y%m%d')}",
-        "qr_code_id": f"QR-{machine_id}-{random.randint(100000, 999999)}",
-        "product_code": random.choice(PRODUCTS),
-        "event_time": datetime.now(timezone.utc).isoformat(),
+        "batch_id": f"B{now:%Y%m%d}{now.hour // 4 + 1}",
     }
+
+
+def build_print_event():
+    event = base_event("PRINT_EVENT")
+    missing_code = random.random() < 0.015
+    duplicate_code = random.random() < 0.008
+    position_error = round(random.normalvariate(0.15, 0.08), 3)
+    vision_fail = missing_code or duplicate_code or abs(position_error) > 0.45 or random.random() < 0.06
+    print_success = not missing_code and random.random() > 0.03
+    reject_flag = (not print_success) or vision_fail
+
+    event.update(
+        {
+            "product_sku": random.choice(PRODUCT_SKUS),
+            "product_code": None,
+            "qr_code": None if missing_code else f"{event['batch_id']}-{LINE_ID}-{random.randint(100000, 999999)}",
+            "qr_code_id": None if missing_code else f"{event['batch_id']}-{LINE_ID}-{random.randint(100000, 999999)}",
+            "print_result": "SUCCESS" if print_success else "FAILED",
+            "vision_result": "FAIL" if vision_fail else "PASS",
+            "reject_flag": reject_flag,
+            "reject_reason": (
+                "MISSING_CODE"
+                if missing_code
+                else "DUPLICATE_CODE"
+                if duplicate_code
+                else "VISION_FAIL"
+                if vision_fail
+                else None
+            ),
+            "position_error_mm": position_error,
+            "grade_score": None if missing_code else round(max(0, min(100, random.normalvariate(94, 4) - abs(position_error) * 20)), 2),
+            "status": "FAILED" if reject_flag else "SUCCESS",
+        }
+    )
+    return event
+
+
+def build_telemetry_event():
+    event = base_event("MACHINE_TELEMETRY")
+    machine_status = random.choices(["RUNNING", "FAULTED", "PLANNED_STOP"], weights=[92, 6, 2], k=1)[0]
+    actual_speed = 0 if machine_status != "RUNNING" else random.randint(700, 850)
+    fault_code = random.choice(list(FAULTS)) if machine_status == "FAULTED" else None
+
+    event.update(
+        {
+            "machine_status": machine_status,
+            "planned_speed_cpm": PLANNED_SPEED_CPM,
+            "actual_speed_cpm": actual_speed,
+            "speed": actual_speed,
+            "printhead_temp_c": round(random.normalvariate(41, 2.8), 2),
+            "temperature": round(random.normalvariate(41, 2.8), 2),
+            "ink_level_pct": round(random.uniform(40, 98), 2),
+            "ink_consumed_ml": round(actual_speed * 0.0032, 3),
+            "vibration_mm_s": round(max(0.4, random.normalvariate(1.8, 0.45) + (0.5 if fault_code else 0)), 3),
+            "air_pressure_bar": round(random.normalvariate(5.8, 0.15), 2),
+            "items_processed": actual_speed,
+            "downtime_seconds": 60 if machine_status in {"FAULTED", "PLANNED_STOP"} else 0,
+            "fault_code": fault_code,
+            "error_code": fault_code,
+            "status": machine_status,
+        }
+    )
+    return event
+
+
+def build_log_event():
+    event = base_event("MACHINE_LOG")
+    fault_code = random.choice(list(FAULTS))
+    event.update(
+        {
+            "log_id": f"LOG-{LINE_ID}-{datetime.now(timezone.utc):%Y%m%d%H%M}-{fault_code}",
+            "log_timestamp": event["event_time"],
+            "fault_code": fault_code,
+            "error_code": fault_code,
+            "fault_description": FAULTS[fault_code],
+            "severity": "HIGH" if fault_code in {"REJECT_GATE_JAM", "ENCODER_SIGNAL_LOSS"} else "MEDIUM",
+            "state_from": "RUNNING",
+            "state_to": "FAULTED",
+            "duration_seconds": 60,
+            "operator_id": f"OP{random.randint(1, 6):03d}",
+            "machine_status": "FAULTED",
+            "status": "FAULTED",
+        }
+    )
+    return event
+
+
+def build_event():
+    event_type = choose_event_type()
+    if event_type == "PRINT_EVENT":
+        return build_print_event()
+    if event_type == "MACHINE_TELEMETRY":
+        return build_telemetry_event()
+    return build_log_event()
 
 
 def main():

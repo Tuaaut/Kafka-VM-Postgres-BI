@@ -123,7 +123,7 @@ Bottom:
 | Ingest Lag | PostgreSQL | `control_room_current_status.latest_lag_seconds` | Pipeline freshness. |
 | Event Flow Per Minute | PostgreSQL | `machine_status_minute` | Event trend. |
 | Machine Board | PostgreSQL | `control_room_machine_status` | Which machine needs attention. |
-| Production Line KPI 15m | PostgreSQL | `machine_events_raw`, `control_room_alert_feed` | Compare L01/L02 status, failures, warnings, temperature, and critical pressure. |
+| Production Line KPI 15m | PostgreSQL | `machine_events_raw`, `control_room_alert_feed` | Monitor `LINE_01` status, failures, warnings, temperature, and critical pressure. |
 | Production Line Event Flow | PostgreSQL | `machine_events_raw` | Compare event volume and failed events by production line. |
 | Alert Feed 60m | PostgreSQL | `control_room_alert_feed` | Recent warning/critical events with suggested action. |
 

@@ -104,7 +104,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH metrics AS (SELECT COUNT(*) AS total_events, COUNT(*) FILTER (WHERE status = 'failed') AS failed_events, COUNT(*) FILTER (WHERE status = 'warning') AS warning_events, ROUND(COUNT(*) FILTER (WHERE status = 'failed')::NUMERIC / NULLIF(COUNT(*), 0) * 100, 2) AS failure_rate_pct, ROUND(AVG(temperature), 2) AS avg_temperature, ROUND(EXTRACT(EPOCH FROM (MAX(ingest_time) - MAX(event_time)))::NUMERIC, 2) AS latest_lag_seconds FROM machine_events_raw WHERE event_time >= NOW() - INTERVAL '15 minutes' AND machine_id IN (${machine:sqlstring}) AND line_id IN (${line:sqlstring})) SELECT CASE WHEN total_events = 0 THEN 3 WHEN failure_rate_pct >= 10 OR warning_events >= 10 OR avg_temperature >= 85 OR latest_lag_seconds >= 300 THEN 2 WHEN failure_rate_pct >= 5 OR warning_events >= 5 OR avg_temperature >= 75 OR latest_lag_seconds >= 120 THEN 1 ELSE 0 END AS state FROM metrics;",
+          "rawSql": "WITH metrics AS (SELECT COUNT(*) AS total_events, COUNT(*) FILTER (WHERE print_result = 'FAILED' OR status IN ('FAILED', 'FAULTED')) AS failed_events, COUNT(*) FILTER (WHERE status = 'FAULTED' OR severity IN ('HIGH', 'MEDIUM')) AS warning_events, COALESCE(ROUND(COUNT(*) FILTER (WHERE print_result = 'FAILED' OR status IN ('FAILED', 'FAULTED'))::NUMERIC / NULLIF(COUNT(*), 0) * 100, 2), 0) AS failure_rate_pct, ROUND(AVG(COALESCE(printhead_temp_c, temperature)), 2) AS avg_temperature, ROUND(EXTRACT(EPOCH FROM (MAX(ingest_time) - MAX(event_time)))::NUMERIC, 2) AS latest_lag_seconds FROM machine_events_raw WHERE event_time >= NOW() - INTERVAL '15 minutes' AND machine_id IN (${machine:sqlstring}) AND line_id IN (${line:sqlstring})) SELECT CASE WHEN total_events = 0 THEN 3 WHEN failure_rate_pct >= 10 OR warning_events >= 10 OR avg_temperature >= 85 OR latest_lag_seconds >= 300 THEN 2 WHEN failure_rate_pct >= 5 OR warning_events >= 5 OR avg_temperature >= 75 OR latest_lag_seconds >= 120 THEN 1 ELSE 0 END AS state FROM metrics;",
           "refId": "A"
         }
       ],
@@ -229,7 +229,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT COALESCE(ROUND(COUNT(*) FILTER (WHERE status = 'failed')::NUMERIC / NULLIF(COUNT(*), 0) * 100, 2), 0) AS failure FROM machine_events_raw WHERE event_time >= NOW() - INTERVAL '15 minutes' AND machine_id IN (${machine:sqlstring}) AND line_id IN (${line:sqlstring});",
+          "rawSql": "SELECT COALESCE(ROUND(COUNT(*) FILTER (WHERE print_result = 'FAILED' OR status IN ('FAILED', 'FAULTED'))::NUMERIC / NULLIF(COUNT(*), 0) * 100, 2), 0) AS failure FROM machine_events_raw WHERE event_time >= NOW() - INTERVAL '15 minutes' AND machine_id IN (${machine:sqlstring}) AND line_id IN (${line:sqlstring});",
           "refId": "A"
         }
       ],
@@ -428,7 +428,7 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT DATE_TRUNC('minute', event_time) AS \"time\", COUNT(*) AS \"Events\", COUNT(*) FILTER (WHERE status = 'failed') AS \"Failed\", COUNT(*) FILTER (WHERE status = 'warning') AS \"Warnings\" FROM machine_events_raw WHERE $__timeFilter(event_time) AND machine_id IN (${machine:sqlstring}) AND line_id IN (${line:sqlstring}) GROUP BY 1 ORDER BY 1;",
+          "rawSql": "SELECT DATE_TRUNC('minute', event_time) AS \"time\", COUNT(*) AS \"Events\", COUNT(*) FILTER (WHERE print_result = 'FAILED' OR status IN ('FAILED', 'FAULTED')) AS \"Failed\", COUNT(*) FILTER (WHERE status = 'FAULTED' OR severity IN ('HIGH', 'MEDIUM')) AS \"Warnings\" FROM machine_events_raw WHERE $__timeFilter(event_time) AND machine_id IN (${machine:sqlstring}) AND line_id IN (${line:sqlstring}) GROUP BY 1 ORDER BY 1;",
           "refId": "A"
         }
       ],
@@ -518,7 +518,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT machine_id AS \"Machine\", line_id AS \"Line\", CASE WHEN COUNT(*) FILTER (WHERE status = 'failed') >= 3 OR ROUND(AVG(temperature), 2) >= 85 THEN 'CRITICAL' WHEN COUNT(*) FILTER (WHERE status = 'warning') >= 3 OR ROUND(AVG(temperature), 2) >= 75 THEN 'WARNING' ELSE 'NORMAL' END AS \"State\", COUNT(*) AS \"Events 15m\", COUNT(*) FILTER (WHERE status = 'failed') AS \"Failed 15m\", COUNT(*) FILTER (WHERE status = 'warning') AS \"Warnings 15m\", ROUND(AVG(temperature), 2) AS \"Temp C\", ROUND(AVG(speed), 2) AS \"Speed\", MAX(event_time) AS \"Latest Event\" FROM machine_events_raw WHERE event_time >= NOW() - INTERVAL '15 minutes' AND machine_id IN (${machine:sqlstring}) AND line_id IN (${line:sqlstring}) GROUP BY machine_id, line_id ORDER BY CASE WHEN COUNT(*) FILTER (WHERE status = 'failed') >= 3 OR ROUND(AVG(temperature), 2) >= 85 THEN 1 WHEN COUNT(*) FILTER (WHERE status = 'warning') >= 3 OR ROUND(AVG(temperature), 2) >= 75 THEN 2 ELSE 3 END, machine_id, line_id;",
+          "rawSql": "SELECT machine_id AS \"Machine\", line_id AS \"Line\", CASE WHEN COUNT(*) FILTER (WHERE print_result = 'FAILED' OR status IN ('FAILED', 'FAULTED')) >= 3 OR ROUND(AVG(COALESCE(printhead_temp_c, temperature)), 2) >= 85 THEN 'CRITICAL' WHEN COUNT(*) FILTER (WHERE status = 'FAULTED' OR severity IN ('HIGH', 'MEDIUM')) >= 3 OR ROUND(AVG(COALESCE(printhead_temp_c, temperature)), 2) >= 75 THEN 'WARNING' ELSE 'NORMAL' END AS \"State\", COUNT(*) AS \"Events 15m\", COUNT(*) FILTER (WHERE print_result = 'FAILED' OR status IN ('FAILED', 'FAULTED')) AS \"Failed 15m\", COUNT(*) FILTER (WHERE status = 'FAULTED' OR severity IN ('HIGH', 'MEDIUM')) AS \"Warnings 15m\", ROUND(AVG(COALESCE(printhead_temp_c, temperature)), 2) AS \"Temp C\", ROUND(AVG(COALESCE(actual_speed_cpm, speed)), 2) AS \"Speed\", MAX(event_time) AS \"Latest Event\" FROM machine_events_raw WHERE event_time >= NOW() - INTERVAL '15 minutes' AND machine_id IN (${machine:sqlstring}) AND line_id IN (${line:sqlstring}) GROUP BY machine_id, line_id ORDER BY CASE WHEN COUNT(*) FILTER (WHERE print_result = 'FAILED' OR status IN ('FAILED', 'FAULTED')) >= 3 OR ROUND(AVG(COALESCE(printhead_temp_c, temperature)), 2) >= 85 THEN 1 WHEN COUNT(*) FILTER (WHERE status = 'FAULTED' OR severity IN ('HIGH', 'MEDIUM')) >= 3 OR ROUND(AVG(COALESCE(printhead_temp_c, temperature)), 2) >= 75 THEN 2 ELSE 3 END, machine_id, line_id;",
           "refId": "A"
         }
       ],
@@ -608,7 +608,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH line_metrics AS (SELECT line_id, COUNT(*) AS events_15m, COUNT(*) FILTER (WHERE status = 'failed') AS failed_15m, COUNT(*) FILTER (WHERE status = 'warning') AS warnings_15m, COALESCE(ROUND(COUNT(*) FILTER (WHERE status = 'failed')::NUMERIC / NULLIF(COUNT(*), 0) * 100, 2), 0) AS failure_rate_pct, ROUND(AVG(temperature), 2) AS avg_temp_c, ROUND(AVG(speed), 2) AS avg_speed, MAX(event_time) AS latest_event FROM machine_events_raw WHERE event_time >= NOW() - INTERVAL '15 minutes' AND machine_id IN (${machine:sqlstring}) AND line_id IN (${line:sqlstring}) GROUP BY line_id), alert_metrics AS (SELECT line_id, COUNT(*) FILTER (WHERE alert_severity = 'CRITICAL' AND event_time >= NOW() - INTERVAL '15 minutes') AS critical_15m FROM control_room_alert_feed WHERE machine_id IN (${machine:sqlstring}) AND line_id IN (${line:sqlstring}) GROUP BY line_id) SELECT m.line_id AS \"Line\", CASE WHEN m.events_15m = 0 THEN 'NO_DATA' WHEN m.failure_rate_pct >= 10 OR m.warnings_15m >= 10 OR m.avg_temp_c >= 85 THEN 'CRITICAL' WHEN m.failure_rate_pct >= 5 OR m.warnings_15m >= 5 OR m.avg_temp_c >= 75 THEN 'WARNING' ELSE 'NORMAL' END AS \"State\", m.events_15m AS \"Events 15m\", m.failed_15m AS \"Failed 15m\", m.warnings_15m AS \"Warnings 15m\", m.failure_rate_pct AS \"Failure %\", COALESCE(a.critical_15m, 0) AS \"Critical 15m\", m.avg_temp_c AS \"Avg Temp C\", m.avg_speed AS \"Avg Speed\", m.latest_event AS \"Latest Event\" FROM line_metrics m LEFT JOIN alert_metrics a ON a.line_id = m.line_id ORDER BY CASE WHEN m.failure_rate_pct >= 10 OR m.warnings_15m >= 10 OR m.avg_temp_c >= 85 THEN 1 WHEN m.failure_rate_pct >= 5 OR m.warnings_15m >= 5 OR m.avg_temp_c >= 75 THEN 2 ELSE 3 END, m.line_id;",
+          "rawSql": "WITH line_metrics AS (SELECT line_id, COUNT(*) AS events_15m, COUNT(*) FILTER (WHERE print_result = 'FAILED' OR status IN ('FAILED', 'FAULTED')) AS failed_15m, COUNT(*) FILTER (WHERE status = 'FAULTED' OR severity IN ('HIGH', 'MEDIUM')) AS warnings_15m, COALESCE(ROUND(COUNT(*) FILTER (WHERE print_result = 'FAILED' OR status IN ('FAILED', 'FAULTED'))::NUMERIC / NULLIF(COUNT(*), 0) * 100, 2), 0) AS failure_rate_pct, ROUND(AVG(COALESCE(printhead_temp_c, temperature)), 2) AS avg_temp_c, ROUND(AVG(COALESCE(actual_speed_cpm, speed)), 2) AS avg_speed, MAX(event_time) AS latest_event FROM machine_events_raw WHERE event_time >= NOW() - INTERVAL '15 minutes' AND machine_id IN (${machine:sqlstring}) AND line_id IN (${line:sqlstring}) GROUP BY line_id), alert_metrics AS (SELECT line_id, COUNT(*) FILTER (WHERE alert_severity = 'CRITICAL' AND event_time >= NOW() - INTERVAL '15 minutes') AS critical_15m FROM control_room_alert_feed WHERE machine_id IN (${machine:sqlstring}) AND line_id IN (${line:sqlstring}) GROUP BY line_id) SELECT m.line_id AS \"Line\", CASE WHEN m.events_15m = 0 THEN 'NO_DATA' WHEN m.failure_rate_pct >= 10 OR m.warnings_15m >= 10 OR m.avg_temp_c >= 85 THEN 'CRITICAL' WHEN m.failure_rate_pct >= 5 OR m.warnings_15m >= 5 OR m.avg_temp_c >= 75 THEN 'WARNING' ELSE 'NORMAL' END AS \"State\", m.events_15m AS \"Events 15m\", m.failed_15m AS \"Failed 15m\", m.warnings_15m AS \"Warnings 15m\", m.failure_rate_pct AS \"Failure %\", COALESCE(a.critical_15m, 0) AS \"Critical 15m\", m.avg_temp_c AS \"Avg Temp C\", m.avg_speed AS \"Avg Speed\", m.latest_event AS \"Latest Event\" FROM line_metrics m LEFT JOIN alert_metrics a ON a.line_id = m.line_id ORDER BY CASE WHEN m.failure_rate_pct >= 10 OR m.warnings_15m >= 10 OR m.avg_temp_c >= 85 THEN 1 WHEN m.failure_rate_pct >= 5 OR m.warnings_15m >= 5 OR m.avg_temp_c >= 75 THEN 2 ELSE 3 END, m.line_id;",
           "refId": "A"
         }
       ],
@@ -665,7 +665,7 @@
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT DATE_TRUNC('minute', event_time) AS \"time\", COUNT(*) FILTER (WHERE line_id = 'L01') AS \"L01 Events\", COUNT(*) FILTER (WHERE line_id = 'L02') AS \"L02 Events\", COUNT(*) FILTER (WHERE line_id = 'L01' AND status = 'failed') AS \"L01 Failed\", COUNT(*) FILTER (WHERE line_id = 'L02' AND status = 'failed') AS \"L02 Failed\" FROM machine_events_raw WHERE $__timeFilter(event_time) AND machine_id IN (${machine:sqlstring}) AND line_id IN (${line:sqlstring}) GROUP BY 1 ORDER BY 1;",
+          "rawSql": "SELECT DATE_TRUNC('minute', event_time) AS \"time\", COUNT(*) FILTER (WHERE line_id = 'LINE_01') AS \"LINE_01 Events\", COUNT(*) FILTER (WHERE line_id = 'LINE_01' AND (print_result = 'FAILED' OR status IN ('FAILED', 'FAULTED'))) AS \"LINE_01 Failed\" FROM machine_events_raw WHERE $__timeFilter(event_time) AND machine_id IN (${machine:sqlstring}) AND line_id IN (${line:sqlstring}) GROUP BY 1 ORDER BY 1;",
           "refId": "A"
         }
       ],
@@ -750,7 +750,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT event_time AS \"Time\", alert_severity AS \"Severity\", machine_id AS \"Machine\", line_id AS \"Line\", event_type AS \"Event Type\", status AS \"Event Status\", CASE WHEN event_type = 'print_failed' THEN 'Inspect QR printer, ink, line jam, and scanner alignment' WHEN event_type = 'machine_warning' THEN 'Check sensor reading and machine condition' WHEN temperature >= 85 THEN 'Inspect cooling and reduce load if needed' WHEN temperature >= 75 THEN 'Watch temperature trend and inspect ventilation' ELSE 'Review event context' END AS \"Suggested Action\", alert_reason AS \"Reason\", temperature AS \"Temp C\", speed AS \"Speed\", error_code AS \"Error Code\" FROM control_room_alert_feed WHERE event_time >= NOW() - INTERVAL '60 minutes' AND machine_id IN (${machine:sqlstring}) AND line_id IN (${line:sqlstring}) ORDER BY event_time DESC LIMIT 100;",
+          "rawSql": "SELECT event_time AS \"Time\", alert_severity AS \"Severity\", machine_id AS \"Machine\", line_id AS \"Line\", event_type AS \"Event Type\", status AS \"Event Status\", CASE WHEN print_result = 'FAILED' THEN 'Inspect QR printer, code quality, ink, and scanner alignment' WHEN fault_code = 'INK_LOW' THEN 'Refill ink and validate print density' WHEN fault_code = 'VISION_DIRTY_LENS' THEN 'Clean vision lens and rerun code inspection' WHEN fault_code = 'PRINTHEAD_TEMP_HIGH' THEN 'Inspect cooling and reduce printer load if needed' WHEN fault_code IN ('ENCODER_SIGNAL_LOSS', 'REJECT_GATE_JAM') THEN 'Inspect conveyor signal and reject gate movement' WHEN temperature >= 85 THEN 'Inspect cooling and reduce load if needed' WHEN temperature >= 75 THEN 'Watch printhead temperature trend' ELSE 'Review event context' END AS \"Suggested Action\", alert_reason AS \"Reason\", temperature AS \"Temp C\", speed AS \"Speed\", error_code AS \"Error Code\" FROM control_room_alert_feed WHERE event_time >= NOW() - INTERVAL '60 minutes' AND machine_id IN (${machine:sqlstring}) AND line_id IN (${line:sqlstring}) ORDER BY event_time DESC LIMIT 100;",
           "refId": "A"
         }
       ],
@@ -771,8 +771,8 @@
       {
         "current": {
           "selected": true,
-          "text": "All",
-          "value": "$__all"
+          "text": "QR_PRINTER_01",
+          "value": "QR_PRINTER_01"
         },
         "datasource": {
           "type": "postgres",
@@ -794,8 +794,8 @@
       {
         "current": {
           "selected": true,
-          "text": "All",
-          "value": "$__all"
+          "text": "LINE_01",
+          "value": "LINE_01"
         },
         "datasource": {
           "type": "postgres",

@@ -26,10 +26,10 @@ groups:
                 WITH metrics AS (
                   SELECT
                     COUNT(*) AS total_events,
-                    COUNT(*) FILTER (WHERE status = 'failed') AS failed_events,
-                    COUNT(*) FILTER (WHERE status = 'warning') AS warning_events,
-                    ROUND(COUNT(*) FILTER (WHERE status = 'failed')::NUMERIC / NULLIF(COUNT(*), 0) * 100, 2) AS failure_rate_pct,
-                    ROUND(AVG(temperature), 2) AS avg_temperature,
+                    COUNT(*) FILTER (WHERE print_result = 'FAILED' OR status IN ('FAILED', 'FAULTED')) AS failed_events,
+                    COUNT(*) FILTER (WHERE status = 'FAULTED' OR severity IN ('HIGH', 'MEDIUM')) AS warning_events,
+                    ROUND(COUNT(*) FILTER (WHERE print_result = 'FAILED' OR status IN ('FAILED', 'FAULTED'))::NUMERIC / NULLIF(COUNT(*), 0) * 100, 2) AS failure_rate_pct,
+                    ROUND(AVG(COALESCE(printhead_temp_c, temperature)), 2) AS avg_temperature,
                     ROUND(EXTRACT(EPOCH FROM (MAX(ingest_time) - MAX(event_time)))::NUMERIC, 2) AS latest_lag_seconds
                   FROM machine_events_raw
                   WHERE event_time >= NOW() - INTERVAL '15 minutes'

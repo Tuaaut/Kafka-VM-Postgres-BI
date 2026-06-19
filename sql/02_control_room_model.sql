@@ -75,15 +75,15 @@ CREATE OR REPLACE VIEW control_room_window_15m AS
 SELECT
     NOW() AS snapshot_time,
     COUNT(*) AS total_events,
-    COUNT(*) FILTER (WHERE status = 'success') AS successful_events,
-    COUNT(*) FILTER (WHERE status = 'failed') AS failed_events,
-    COUNT(*) FILTER (WHERE status = 'warning') AS warning_events,
+    COUNT(*) FILTER (WHERE print_result = 'SUCCESS' OR status = 'RUNNING') AS successful_events,
+    COUNT(*) FILTER (WHERE print_result = 'FAILED' OR status IN ('FAILED', 'FAULTED')) AS failed_events,
+    COUNT(*) FILTER (WHERE status = 'FAULTED' OR severity IN ('HIGH', 'MEDIUM')) AS warning_events,
     ROUND(
-        COUNT(*) FILTER (WHERE status = 'failed')::NUMERIC / NULLIF(COUNT(*), 0) * 100,
+        COUNT(*) FILTER (WHERE print_result = 'FAILED' OR status IN ('FAILED', 'FAULTED'))::NUMERIC / NULLIF(COUNT(*), 0) * 100,
         2
     ) AS failure_rate_pct,
-    ROUND(AVG(temperature), 2) AS avg_temperature,
-    ROUND(AVG(speed), 2) AS avg_speed,
+    ROUND(AVG(COALESCE(printhead_temp_c, temperature)), 2) AS avg_temperature,
+    ROUND(AVG(COALESCE(actual_speed_cpm, speed)), 2) AS avg_speed,
     MAX(event_time) AS latest_event_time,
     MAX(ingest_time) AS latest_ingest_time,
     ROUND(EXTRACT(EPOCH FROM (MAX(ingest_time) - MAX(event_time)))::NUMERIC, 2) AS latest_lag_seconds
@@ -130,17 +130,17 @@ SELECT
     machine_id,
     line_id,
     COUNT(*) AS total_events_15m,
-    COUNT(*) FILTER (WHERE status = 'failed') AS failed_events_15m,
-    COUNT(*) FILTER (WHERE status = 'warning') AS warning_events_15m,
-    ROUND(AVG(temperature), 2) AS avg_temperature_15m,
-    ROUND(AVG(speed), 2) AS avg_speed_15m,
+    COUNT(*) FILTER (WHERE print_result = 'FAILED' OR status IN ('FAILED', 'FAULTED')) AS failed_events_15m,
+    COUNT(*) FILTER (WHERE status = 'FAULTED' OR severity IN ('HIGH', 'MEDIUM')) AS warning_events_15m,
+    ROUND(AVG(COALESCE(printhead_temp_c, temperature)), 2) AS avg_temperature_15m,
+    ROUND(AVG(COALESCE(actual_speed_cpm, speed)), 2) AS avg_speed_15m,
     MAX(event_time) AS latest_event_time,
     CASE
         WHEN COUNT(*) = 0 THEN 'NO_DATA'
-        WHEN COUNT(*) FILTER (WHERE status = 'failed') >= 3
-          OR ROUND(AVG(temperature), 2) >= 85 THEN 'CRITICAL'
-        WHEN COUNT(*) FILTER (WHERE status = 'warning') >= 3
-          OR ROUND(AVG(temperature), 2) >= 75 THEN 'WARNING'
+        WHEN COUNT(*) FILTER (WHERE print_result = 'FAILED' OR status IN ('FAILED', 'FAULTED')) >= 3
+          OR ROUND(AVG(COALESCE(printhead_temp_c, temperature)), 2) >= 85 THEN 'CRITICAL'
+        WHEN COUNT(*) FILTER (WHERE status = 'FAULTED' OR severity IN ('HIGH', 'MEDIUM')) >= 3
+          OR ROUND(AVG(COALESCE(printhead_temp_c, temperature)), 2) >= 75 THEN 'WARNING'
         ELSE 'NORMAL'
     END AS machine_status
 FROM machine_events_raw
@@ -154,27 +154,31 @@ SELECT
     line_id,
     event_type,
     status,
-    error_code,
-    temperature,
-    speed,
+    COALESCE(fault_code, error_code) AS error_code,
+    COALESCE(printhead_temp_c, temperature) AS temperature,
+    COALESCE(actual_speed_cpm, speed) AS speed,
     event_time,
     ingest_time,
     CASE
-        WHEN status = 'failed' OR temperature >= 85 THEN 'CRITICAL'
-        WHEN status = 'warning' OR temperature >= 75 THEN 'WARNING'
+        WHEN print_result = 'FAILED' OR severity = 'HIGH' OR COALESCE(printhead_temp_c, temperature) >= 85 THEN 'CRITICAL'
+        WHEN status = 'FAULTED' OR severity = 'MEDIUM' OR COALESCE(printhead_temp_c, temperature) >= 75 THEN 'WARNING'
         ELSE 'INFO'
     END AS alert_severity,
     CASE
-        WHEN status = 'failed' THEN 'Failed machine or production event'
-        WHEN status = 'warning' THEN 'Machine warning event'
-        WHEN temperature >= 85 THEN 'Critical temperature threshold breached'
-        WHEN temperature >= 75 THEN 'Warning temperature threshold breached'
+        WHEN print_result = 'FAILED' THEN 'Failed QR print or rejected item'
+        WHEN severity = 'HIGH' THEN 'High-severity machine fault'
+        WHEN status = 'FAULTED' OR severity = 'MEDIUM' THEN 'Machine fault or warning condition'
+        WHEN COALESCE(printhead_temp_c, temperature) >= 85 THEN 'Critical printhead temperature threshold breached'
+        WHEN COALESCE(printhead_temp_c, temperature) >= 75 THEN 'Warning printhead temperature threshold breached'
         ELSE 'Informational event'
     END AS alert_reason
 FROM machine_events_raw
 WHERE event_time >= NOW() - INTERVAL '60 minutes'
   AND (
-      status IN ('failed', 'warning')
-      OR temperature >= 75
-      OR event_type IN ('machine_warning', 'machine_fault')
+      print_result = 'FAILED'
+      OR reject_flag IS TRUE
+      OR status = 'FAULTED'
+      OR severity IN ('HIGH', 'MEDIUM')
+      OR COALESCE(printhead_temp_c, temperature) >= 75
+      OR event_type = 'MACHINE_LOG'
   );

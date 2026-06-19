@@ -103,9 +103,7 @@ Expose production and QR-printing related events.
 Included event types:
 
 ```text
-print_completed
-print_failed
-production_counter
+PRINT_EVENT
 ```
 
 Use for:
@@ -342,8 +340,8 @@ Events by minute:
 SELECT
     DATE_TRUNC('minute', event_time) AS event_minute,
     COUNT(*) AS event_count,
-    COUNT(*) FILTER (WHERE status = 'failed') AS failed_events,
-    COUNT(*) FILTER (WHERE status = 'warning') AS warning_events
+    COUNT(*) FILTER (WHERE print_result = 'FAILED' OR status IN ('FAILED', 'FAULTED')) AS failed_events,
+    COUNT(*) FILTER (WHERE status = 'FAULTED' OR severity IN ('HIGH', 'MEDIUM')) AS warning_events
 FROM machine_events_raw
 GROUP BY 1
 ORDER BY 1 DESC;

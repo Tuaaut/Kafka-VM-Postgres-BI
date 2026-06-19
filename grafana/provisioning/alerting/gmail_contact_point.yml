@@ -1,0 +1,35 @@
+apiVersion: 1
+
+contactPoints:
+  - orgId: 1
+    name: kafka-gmail-email
+    receivers:
+      - uid: kafka_gmail_email
+        type: email
+        disableResolveMessage: false
+        settings:
+          addresses: $GRAFANA_ALERT_EMAIL_TO
+          singleEmail: false
+          subject: "Kafka Monitoring: {{ template \"default.title\" . }}"
+
+policies:
+  - orgId: 1
+    receiver: kafka-gmail-email
+    group_by:
+      - grafana_folder
+      - alertname
+    group_wait: 30s
+    group_interval: 5m
+    repeat_interval: 4h
+    routes:
+      - receiver: kafka-gmail-email
+        object_matchers:
+          - - project
+            - =
+            - kafka_vm_postgres_bi
+        group_by:
+          - alertname
+          - severity
+        group_wait: 30s
+        group_interval: 5m
+        repeat_interval: 1h

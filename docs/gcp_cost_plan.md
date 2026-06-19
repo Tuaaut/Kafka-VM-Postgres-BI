@@ -1,0 +1,193 @@
+# GCP Cost Plan
+
+This file records the cost-first plan for running the Kafka, PostgreSQL, and Grafana stack on a Google Cloud Compute Engine VM.
+
+## Current Cloud State
+
+Current status:
+
+```text
+Local Docker Compose stack works.
+Singapore GCP VM is running the same stack.
+Current VM: kafka-postgres-bi-sg, asia-southeast1-a, e2-small.
+Grafana is reached through localhost:3001 SSH tunnel.
+PostgreSQL is reached through localhost:5433 SSH tunnel for DBeaver.
+Gmail SMTP is not configured yet.
+```
+
+Decision:
+
+```text
+Keep e2-small for now because it has been verified and looks cheaper.
+Upgrade to e2-medium only if monitoring shows pressure.
+```
+
+## Local Resource Sample
+
+Sample from the local running containers:
+
+| Container | CPU | RAM |
+| --- | ---: | ---: |
+| Grafana | 1.11% | 96.8 MiB |
+| Producer | 0.01% | 14.26 MiB |
+| Consumer | 0.10% | 25.39 MiB |
+| Kafka | 1.43% | 446.7 MiB |
+| PostgreSQL | 0.00% | 22.96 MiB |
+
+Observed container RAM total:
+
+```text
+About 606 MiB, excluding Ubuntu OS, Docker overhead, page cache, and runtime spikes.
+```
+
+Current interpretation:
+
+```text
+e2-small has been tested on the Singapore VM and is acceptable for the current demo.
+Keep monitoring memory, swap, CPU, disk, and Grafana responsiveness.
+```
+
+## Recommended VM Choice
+
+Current choice:
+
+```text
+Machine type: e2-small
+vCPU / RAM: 2 shared vCPU, 2 GB RAM
+Boot disk: 30 GB standard persistent disk or balanced persistent disk
+OS: Ubuntu 24.04 LTS
+Access: SSH tunnel first, not public Grafana
+```
+
+Why:
+
+- It is cheaper than e2-medium.
+- It has enough room for the current low-volume producer rate.
+- Swap is enabled as a safety buffer.
+- The dashboard and DBeaver tunnel have already been verified.
+- The VM can be upgraded quickly if it becomes too tight.
+
+Upgrade path:
+
+```text
+If e2-small becomes unstable, stop the VM and change machine type to e2-medium.
+```
+
+Avoid:
+
+```text
+e2-micro
+```
+
+Reason:
+
+```text
+1 GB RAM is too tight for Kafka + PostgreSQL + Grafana + producer + consumer.
+```
+
+## Monthly Cost Estimate
+
+These are planning estimates. Verify final numbers in the GCP Pricing Calculator before leaving the VM running for long periods.
+
+Assumption:
+
+```text
+Region: asia-southeast1
+Runtime: 730 hours/month if left on 24/7
+OS: Ubuntu/Linux
+Disk: 30 GB
+```
+
+| Item | Estimated monthly cost if always on | Note |
+| --- | ---: | --- |
+| `e2-small` compute | lower than e2-medium | Current verified demo size. |
+| `e2-medium` compute | roughly about 2x e2-small | Upgrade only if needed. |
+| 30 GB standard persistent disk | small monthly cost | Disk remains billed when VM is stopped. |
+| External IPv4 | a few dollars/month if used | Avoid static IP until needed. |
+| Network egress | likely near zero for demo | Grafana traffic is small. |
+
+Practical always-on expectation:
+
+```text
+e2-small should remain the lower-cost option.
+Singapore pricing can differ from US examples, so recheck the GCP calculator before leaving it always-on.
+```
+
+Practical testing-only expectation:
+
+```text
+If the VM runs only 40 hours/month:
+compute is roughly 40 / 730 of the monthly compute cost.
+Disk still remains billed while the VM is stopped.
+```
+
+## Cost Controls
+
+Use these rules:
+
+- Stop the VM when not testing.
+- Keep the disk small at first: 20-30 GB.
+- Use standard persistent disk first unless boot performance feels poor.
+- Avoid reserving a static external IP until sharing is required.
+- Use SSH tunnel for Grafana first:
+
+```bash
+gcloud compute ssh kafka-postgres-bi-sg --project YOUR_GCP_PROJECT_ID --zone asia-southeast1-a -- -N -L 3001:localhost:3000
+```
+
+- Do not open PostgreSQL port `5432`.
+- Open Grafana port `3000` only later, and only to trusted source IPs.
+- Keep producer at:
+
+```text
+10 events every 60 seconds
+```
+
+- Keep GCP budget alert enabled.
+- Add a manual shutdown habit after every test session:
+
+```bash
+gcloud compute instances stop VM_NAME --zone ZONE
+```
+
+Current VM stop command:
+
+```bash
+gcloud compute instances stop kafka-postgres-bi-sg --project YOUR_GCP_PROJECT_ID --zone asia-southeast1-a
+```
+
+## Production-Like Demo Plan
+
+Phase 1:
+
+```text
+Create e2-small Singapore VM
+Deploy Docker Compose stack
+Use SSH tunnel to open Grafana
+Verify pipeline and dashboard
+```
+
+Phase 2:
+
+```text
+Configure Gmail SMTP in VM-only .env
+Send one test alert email
+Keep PostgreSQL private
+```
+
+Phase 3:
+
+```text
+Monitor e2-small stability
+Upgrade to e2-medium only if dashboard, Kafka, PostgreSQL, or alerting becomes unreliable
+```
+
+See `docs/gcp_vm_operations.md` for live resource checks and upgrade commands.
+
+## Sources To Recheck
+
+- Google Compute Engine pricing page: https://cloud.google.com/products/compute/pricing
+- Google E2 machine family docs: https://cloud.google.com/compute/docs/general-purpose-machines
+- Google Persistent Disk pricing: https://cloud.google.com/compute/disks-image-pricing
+- Google VPC external IP pricing: https://cloud.google.com/vpc/network-pricing
+- GCP Pricing Calculator: https://cloud.google.com/products/calculator

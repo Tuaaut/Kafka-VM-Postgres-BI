@@ -1,0 +1,829 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "machine_monitoring_postgres"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [
+            {
+              "options": {
+                "0": {
+                  "color": "green",
+                  "index": 0,
+                  "text": "NORMAL"
+                },
+                "1": {
+                  "color": "orange",
+                  "index": 1,
+                  "text": "WARNING"
+                },
+                "2": {
+                  "color": "red",
+                  "index": 2,
+                  "text": "CRITICAL"
+                },
+                "3": {
+                  "color": "gray",
+                  "index": 3,
+                  "text": "NO DATA"
+                }
+              },
+              "type": "value"
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "displayName": "State"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 8,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "pluginVersion": "11.5.2",
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "machine_monitoring_postgres"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH metrics AS (SELECT COUNT(*) AS total_events, COUNT(*) FILTER (WHERE status = 'failed') AS failed_events, COUNT(*) FILTER (WHERE status = 'warning') AS warning_events, ROUND(COUNT(*) FILTER (WHERE status = 'failed')::NUMERIC / NULLIF(COUNT(*), 0) * 100, 2) AS failure_rate_pct, ROUND(AVG(temperature), 2) AS avg_temperature, ROUND(EXTRACT(EPOCH FROM (MAX(ingest_time) - MAX(event_time)))::NUMERIC, 2) AS latest_lag_seconds FROM machine_events_raw WHERE event_time >= NOW() - INTERVAL '15 minutes' AND machine_id IN (${machine:sqlstring}) AND line_id IN (${line:sqlstring})) SELECT CASE WHEN total_events = 0 THEN 3 WHEN failure_rate_pct >= 10 OR warning_events >= 10 OR avg_temperature >= 85 OR latest_lag_seconds >= 300 THEN 2 WHEN failure_rate_pct >= 5 OR warning_events >= 5 OR avg_temperature >= 75 OR latest_lag_seconds >= 120 THEN 1 ELSE 0 END AS state FROM metrics;",
+          "refId": "A"
+        }
+      ],
+      "title": "Plant State",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "machine_monitoring_postgres"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "unit": "short",
+          "displayName": "Events"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 8,
+        "y": 0
+      },
+      "id": 2,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "11.5.2",
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "machine_monitoring_postgres"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT COUNT(*) AS events FROM machine_events_raw WHERE event_time >= NOW() - INTERVAL '15 minutes' AND machine_id IN (${machine:sqlstring}) AND line_id IN (${line:sqlstring});",
+          "refId": "A"
+        }
+      ],
+      "title": "Events 15m",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "machine_monitoring_postgres"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 5
+              },
+              {
+                "color": "red",
+                "value": 10
+              }
+            ]
+          },
+          "unit": "percent",
+          "displayName": "Failure"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 12,
+        "y": 0
+      },
+      "id": 3,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "11.5.2",
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "machine_monitoring_postgres"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT COALESCE(ROUND(COUNT(*) FILTER (WHERE status = 'failed')::NUMERIC / NULLIF(COUNT(*), 0) * 100, 2), 0) AS failure FROM machine_events_raw WHERE event_time >= NOW() - INTERVAL '15 minutes' AND machine_id IN (${machine:sqlstring}) AND line_id IN (${line:sqlstring});",
+          "refId": "A"
+        }
+      ],
+      "title": "Failure Rate",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "machine_monitoring_postgres"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "unit": "short",
+          "displayName": "Critical",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              },
+              {
+                "color": "red",
+                "value": 3
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 16,
+        "y": 0
+      },
+      "id": 8,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "11.5.2",
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "machine_monitoring_postgres"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT COUNT(*) AS critical FROM control_room_alert_feed WHERE alert_severity = 'CRITICAL' AND event_time >= NOW() - INTERVAL '15 minutes' AND machine_id IN (${machine:sqlstring}) AND line_id IN (${line:sqlstring});",
+          "refId": "A"
+        }
+      ],
+      "title": "Critical 15m",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "machine_monitoring_postgres"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 120
+              },
+              {
+                "color": "red",
+                "value": 300
+              }
+            ]
+          },
+          "unit": "s",
+          "displayName": "Lag"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 20,
+        "y": 0
+      },
+      "id": 4,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "11.5.2",
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "machine_monitoring_postgres"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT COALESCE(ROUND(EXTRACT(EPOCH FROM (MAX(ingest_time) - MAX(event_time)))::NUMERIC, 2), 0) AS lag FROM machine_events_raw WHERE event_time >= NOW() - INTERVAL '15 minutes' AND machine_id IN (${machine:sqlstring}) AND line_id IN (${line:sqlstring});",
+          "refId": "A"
+        }
+      ],
+      "title": "Ingest Lag",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "machine_monitoring_postgres"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineWidth": 2,
+            "pointSize": 5,
+            "showPoints": "never"
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 5
+      },
+      "id": 5,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "machine_monitoring_postgres"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT DATE_TRUNC('minute', event_time) AS \"time\", COUNT(*) AS \"Events\", COUNT(*) FILTER (WHERE status = 'failed') AS \"Failed\", COUNT(*) FILTER (WHERE status = 'warning') AS \"Warnings\" FROM machine_events_raw WHERE $__timeFilter(event_time) AND machine_id IN (${machine:sqlstring}) AND line_id IN (${line:sqlstring}) GROUP BY 1 ORDER BY 1;",
+          "refId": "A"
+        }
+      ],
+      "title": "Event Flow Per Minute",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "machine_monitoring_postgres"
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "State"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "CRITICAL": {
+                        "text": "CRITICAL",
+                        "color": "red",
+                        "index": 0
+                      },
+                      "WARNING": {
+                        "text": "WARNING",
+                        "color": "orange",
+                        "index": 1
+                      },
+                      "NORMAL": {
+                        "text": "NORMAL",
+                        "color": "green",
+                        "index": 2
+                      },
+                      "NO_DATA": {
+                        "text": "NO_DATA",
+                        "color": "gray",
+                        "index": 3
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 5
+      },
+      "id": 6,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true
+      },
+      "pluginVersion": "11.5.2",
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "machine_monitoring_postgres"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT machine_id AS \"Machine\", line_id AS \"Line\", CASE WHEN COUNT(*) FILTER (WHERE status = 'failed') >= 3 OR ROUND(AVG(temperature), 2) >= 85 THEN 'CRITICAL' WHEN COUNT(*) FILTER (WHERE status = 'warning') >= 3 OR ROUND(AVG(temperature), 2) >= 75 THEN 'WARNING' ELSE 'NORMAL' END AS \"State\", COUNT(*) AS \"Events 15m\", COUNT(*) FILTER (WHERE status = 'failed') AS \"Failed 15m\", COUNT(*) FILTER (WHERE status = 'warning') AS \"Warnings 15m\", ROUND(AVG(temperature), 2) AS \"Temp C\", ROUND(AVG(speed), 2) AS \"Speed\", MAX(event_time) AS \"Latest Event\" FROM machine_events_raw WHERE event_time >= NOW() - INTERVAL '15 minutes' AND machine_id IN (${machine:sqlstring}) AND line_id IN (${line:sqlstring}) GROUP BY machine_id, line_id ORDER BY CASE WHEN COUNT(*) FILTER (WHERE status = 'failed') >= 3 OR ROUND(AVG(temperature), 2) >= 85 THEN 1 WHEN COUNT(*) FILTER (WHERE status = 'warning') >= 3 OR ROUND(AVG(temperature), 2) >= 75 THEN 2 ELSE 3 END, machine_id, line_id;",
+          "refId": "A"
+        }
+      ],
+      "title": "Machine Board 15m",
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "machine_monitoring_postgres"
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "State"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "CRITICAL": {
+                        "text": "CRITICAL",
+                        "color": "red",
+                        "index": 0
+                      },
+                      "WARNING": {
+                        "text": "WARNING",
+                        "color": "orange",
+                        "index": 1
+                      },
+                      "NORMAL": {
+                        "text": "NORMAL",
+                        "color": "green",
+                        "index": 2
+                      },
+                      "NO_DATA": {
+                        "text": "NO_DATA",
+                        "color": "gray",
+                        "index": 3
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 13
+      },
+      "id": 9,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true
+      },
+      "pluginVersion": "11.5.2",
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "machine_monitoring_postgres"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH line_metrics AS (SELECT line_id, COUNT(*) AS events_15m, COUNT(*) FILTER (WHERE status = 'failed') AS failed_15m, COUNT(*) FILTER (WHERE status = 'warning') AS warnings_15m, COALESCE(ROUND(COUNT(*) FILTER (WHERE status = 'failed')::NUMERIC / NULLIF(COUNT(*), 0) * 100, 2), 0) AS failure_rate_pct, ROUND(AVG(temperature), 2) AS avg_temp_c, ROUND(AVG(speed), 2) AS avg_speed, MAX(event_time) AS latest_event FROM machine_events_raw WHERE event_time >= NOW() - INTERVAL '15 minutes' AND machine_id IN (${machine:sqlstring}) AND line_id IN (${line:sqlstring}) GROUP BY line_id), alert_metrics AS (SELECT line_id, COUNT(*) FILTER (WHERE alert_severity = 'CRITICAL' AND event_time >= NOW() - INTERVAL '15 minutes') AS critical_15m FROM control_room_alert_feed WHERE machine_id IN (${machine:sqlstring}) AND line_id IN (${line:sqlstring}) GROUP BY line_id) SELECT m.line_id AS \"Line\", CASE WHEN m.events_15m = 0 THEN 'NO_DATA' WHEN m.failure_rate_pct >= 10 OR m.warnings_15m >= 10 OR m.avg_temp_c >= 85 THEN 'CRITICAL' WHEN m.failure_rate_pct >= 5 OR m.warnings_15m >= 5 OR m.avg_temp_c >= 75 THEN 'WARNING' ELSE 'NORMAL' END AS \"State\", m.events_15m AS \"Events 15m\", m.failed_15m AS \"Failed 15m\", m.warnings_15m AS \"Warnings 15m\", m.failure_rate_pct AS \"Failure %\", COALESCE(a.critical_15m, 0) AS \"Critical 15m\", m.avg_temp_c AS \"Avg Temp C\", m.avg_speed AS \"Avg Speed\", m.latest_event AS \"Latest Event\" FROM line_metrics m LEFT JOIN alert_metrics a ON a.line_id = m.line_id ORDER BY CASE WHEN m.failure_rate_pct >= 10 OR m.warnings_15m >= 10 OR m.avg_temp_c >= 85 THEN 1 WHEN m.failure_rate_pct >= 5 OR m.warnings_15m >= 5 OR m.avg_temp_c >= 75 THEN 2 ELSE 3 END, m.line_id;",
+          "refId": "A"
+        }
+      ],
+      "title": "Production Line KPI 15m",
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "machine_monitoring_postgres"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineWidth": 2,
+            "pointSize": 5,
+            "showPoints": "never"
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 13
+      },
+      "id": 10,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "machine_monitoring_postgres"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT DATE_TRUNC('minute', event_time) AS \"time\", COUNT(*) FILTER (WHERE line_id = 'L01') AS \"L01 Events\", COUNT(*) FILTER (WHERE line_id = 'L02') AS \"L02 Events\", COUNT(*) FILTER (WHERE line_id = 'L01' AND status = 'failed') AS \"L01 Failed\", COUNT(*) FILTER (WHERE line_id = 'L02' AND status = 'failed') AS \"L02 Failed\" FROM machine_events_raw WHERE $__timeFilter(event_time) AND machine_id IN (${machine:sqlstring}) AND line_id IN (${line:sqlstring}) GROUP BY 1 ORDER BY 1;",
+          "refId": "A"
+        }
+      ],
+      "title": "Production Line Event Flow",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "machine_monitoring_postgres"
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Severity"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "CRITICAL": {
+                        "text": "CRITICAL",
+                        "color": "red",
+                        "index": 0
+                      },
+                      "WARNING": {
+                        "text": "WARNING",
+                        "color": "orange",
+                        "index": 1
+                      },
+                      "INFO": {
+                        "text": "INFO",
+                        "color": "blue",
+                        "index": 2
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 21
+      },
+      "id": 7,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true
+      },
+      "pluginVersion": "11.5.2",
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "machine_monitoring_postgres"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT event_time AS \"Time\", alert_severity AS \"Severity\", machine_id AS \"Machine\", line_id AS \"Line\", event_type AS \"Event Type\", status AS \"Event Status\", CASE WHEN event_type = 'print_failed' THEN 'Inspect QR printer, ink, line jam, and scanner alignment' WHEN event_type = 'machine_warning' THEN 'Check sensor reading and machine condition' WHEN temperature >= 85 THEN 'Inspect cooling and reduce load if needed' WHEN temperature >= 75 THEN 'Watch temperature trend and inspect ventilation' ELSE 'Review event context' END AS \"Suggested Action\", alert_reason AS \"Reason\", temperature AS \"Temp C\", speed AS \"Speed\", error_code AS \"Error Code\" FROM control_room_alert_feed WHERE event_time >= NOW() - INTERVAL '60 minutes' AND machine_id IN (${machine:sqlstring}) AND line_id IN (${line:sqlstring}) ORDER BY event_time DESC LIMIT 100;",
+          "refId": "A"
+        }
+      ],
+      "title": "Alert Feed 60m",
+      "type": "table"
+    }
+  ],
+  "preload": false,
+  "refresh": "30s",
+  "schemaVersion": 40,
+  "tags": [
+    "kafka",
+    "postgres",
+    "monitoring"
+  ],
+  "templating": {
+    "list": [
+      {
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": "$__all"
+        },
+        "datasource": {
+          "type": "postgres",
+          "uid": "machine_monitoring_postgres"
+        },
+        "definition": "SELECT DISTINCT machine_id FROM machine_events_raw ORDER BY machine_id;",
+        "hide": 0,
+        "includeAll": true,
+        "label": "Machine",
+        "multi": true,
+        "name": "machine",
+        "options": [],
+        "query": "SELECT DISTINCT machine_id FROM machine_events_raw ORDER BY machine_id;",
+        "refresh": 1,
+        "regex": "",
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": "$__all"
+        },
+        "datasource": {
+          "type": "postgres",
+          "uid": "machine_monitoring_postgres"
+        },
+        "definition": "SELECT DISTINCT line_id FROM machine_events_raw ORDER BY line_id;",
+        "hide": 0,
+        "includeAll": true,
+        "label": "Line",
+        "multi": true,
+        "name": "line",
+        "options": [],
+        "query": "SELECT DISTINCT line_id FROM machine_events_raw ORDER BY line_id;",
+        "refresh": 1,
+        "regex": "",
+        "sort": 1,
+        "type": "query"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Kafka Machine Monitoring Control Room",
+  "uid": "kafka-machine-monitoring",
+  "version": 10,
+  "weekStart": ""
+}

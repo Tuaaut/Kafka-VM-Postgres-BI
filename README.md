@@ -89,28 +89,27 @@ The project also has a tested GCP VM deployment path. The VM can be stopped when
 
 ## Grafana Access
 
+Public dashboard:
+
+```text
+http://136.110.54.120:3000/d/kafka-machine-monitoring/kafka-machine-monitoring-control-room
+```
+
+The public dashboard opens in anonymous viewer mode, so visitors do not need to register or log in.
+
 Local dashboard:
 
 ```text
 http://localhost:3000
 ```
 
-GCP VM dashboard through SSH tunnel:
+The public URL is available while the GCP VM is running. The VM can be stopped when the demo is not needed to control cost.
 
-```bash
-gcloud compute ssh kafka-postgres-bi-sg \
-  --project YOUR_GCP_PROJECT_ID \
-  --zone asia-southeast1-a \
-  -- -N -L 3001:localhost:3000
-```
-
-Then open:
+Default local admin login:
 
 ```text
-http://localhost:3001
+admin / admin
 ```
-
-The VM uses an SSH tunnel first, so Grafana does not need to be exposed publicly while testing.
 
 ## Explore More
 

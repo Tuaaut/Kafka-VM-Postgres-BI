@@ -87,6 +87,31 @@ Producer -> Kafka -> Consumer -> PostgreSQL -> Grafana
 
 The project also has a tested GCP VM deployment path. The VM can be stopped when not in use to control cost.
 
+## Grafana Access
+
+Local dashboard:
+
+```text
+http://localhost:3000
+```
+
+GCP VM dashboard through SSH tunnel:
+
+```bash
+gcloud compute ssh kafka-postgres-bi-sg \
+  --project YOUR_GCP_PROJECT_ID \
+  --zone asia-southeast1-a \
+  -- -N -L 3001:localhost:3000
+```
+
+Then open:
+
+```text
+http://localhost:3001
+```
+
+The VM uses an SSH tunnel first, so Grafana does not need to be exposed publicly while testing.
+
 ## Explore More
 
 For deeper technical details, use these documents:
@@ -108,7 +133,7 @@ scripts/start_services.sh
 scripts/create_topics.sh
 ```
 
-Then open Grafana:
+Then open local Grafana:
 
 ```text
 http://localhost:3000

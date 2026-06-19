@@ -17,6 +17,7 @@ EVENT_INTERVAL_SECONDS = float(os.getenv("PRODUCER_EVENT_INTERVAL_SECONDS", "60"
 EVENTS_PER_BATCH = int(os.getenv("PRODUCER_EVENTS_PER_BATCH", "10"))
 MAX_BATCHES = os.getenv("PRODUCER_MAX_BATCHES")
 MAX_BATCHES = int(MAX_BATCHES) if MAX_BATCHES else None
+SEED_EVENTS = os.getenv("PRODUCER_SEED_EVENTS", "true").lower() == "true"
 
 LINE_ID = "LINE_01"
 MACHINE_ID = "QR_PRINTER_01"
@@ -151,6 +152,82 @@ def build_log_event():
     return event
 
 
+def build_seed_events():
+    events = []
+
+    for product_sku in PRODUCT_SKUS:
+        event = build_print_event()
+        event.update(
+            {
+                "product_sku": product_sku,
+                "print_result": "SUCCESS",
+                "vision_result": "PASS",
+                "reject_flag": False,
+                "reject_reason": None,
+                "status": "SUCCESS",
+            }
+        )
+        events.append(event)
+
+    for reject_reason in ["MISSING_CODE", "DUPLICATE_CODE", "VISION_FAIL"]:
+        event = build_print_event()
+        event.update(
+            {
+                "print_result": "FAILED",
+                "vision_result": "FAIL",
+                "reject_flag": True,
+                "reject_reason": reject_reason,
+                "status": "FAILED",
+            }
+        )
+        if reject_reason == "MISSING_CODE":
+            event.update({"qr_code": None, "qr_code_id": None, "grade_score": None})
+        events.append(event)
+
+    for machine_status in ["RUNNING", "PLANNED_STOP"]:
+        event = build_telemetry_event()
+        event.update(
+            {
+                "machine_status": machine_status,
+                "actual_speed_cpm": 0 if machine_status == "PLANNED_STOP" else PLANNED_SPEED_CPM,
+                "speed": 0 if machine_status == "PLANNED_STOP" else PLANNED_SPEED_CPM,
+                "downtime_seconds": 60 if machine_status == "PLANNED_STOP" else 0,
+                "fault_code": None,
+                "error_code": None,
+                "status": machine_status,
+            }
+        )
+        events.append(event)
+
+    for fault_code in FAULTS:
+        telemetry = build_telemetry_event()
+        telemetry.update(
+            {
+                "machine_status": "FAULTED",
+                "actual_speed_cpm": 0,
+                "speed": 0,
+                "downtime_seconds": 60,
+                "fault_code": fault_code,
+                "error_code": fault_code,
+                "status": "FAULTED",
+            }
+        )
+        events.append(telemetry)
+
+        log_event = build_log_event()
+        log_event.update(
+            {
+                "fault_code": fault_code,
+                "error_code": fault_code,
+                "fault_description": FAULTS[fault_code],
+                "severity": "HIGH" if fault_code in {"REJECT_GATE_JAM", "ENCODER_SIGNAL_LOSS"} else "MEDIUM",
+            }
+        )
+        events.append(log_event)
+
+    return events
+
+
 def build_event():
     event_type = choose_event_type()
     if event_type == "PRINT_EVENT":
@@ -169,6 +246,17 @@ def main():
         f"producing {EVENTS_PER_BATCH} event(s) every {EVENT_INTERVAL_SECONDS:g}s "
         f"to {TOPIC} on {BOOTSTRAP_SERVERS}"
     )
+
+    if SEED_EVENTS:
+        for event in build_seed_events():
+            producer.produce(
+                TOPIC,
+                key=event["machine_id"],
+                value=json.dumps(event),
+                callback=delivery_report,
+            )
+        producer.poll(0)
+        producer.flush(10)
 
     batch_count = 0
     while running:

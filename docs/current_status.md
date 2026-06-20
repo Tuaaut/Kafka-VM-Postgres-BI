@@ -209,6 +209,7 @@ LINE channel access token was generated and saved only in local .env.
 LINE bridge was added for Grafana webhook payloads.
 Broadcast mode was added so first testing does not require LINE_TO_ID.
 Real LINE Messaging API test returned HTTP 200.
+Full Grafana-to-LINE route test returned HTTP 200 from the LINE bridge.
 ```
 
 Current LINE resources:
@@ -220,6 +221,7 @@ Provider: Kafka Monitoring Demo
 Channel ID: 2010459362
 Current send mode: broadcast
 Current target: LINE Official Account friends/followers
+Grafana route status: critical project alerts routed to LINE
 ```
 
 Current local secret handling:
@@ -244,15 +246,14 @@ grafana/provisioning/alerting/line_webhook_contact_point.yml
 Current limitation:
 
 ```text
-Grafana LINE webhook contact point is prepared but not routed yet.
 True LINE group-chat push is not enabled yet because groupId has not been captured.
 ```
 
 Next LINE step:
 
 ```text
-Decide where the bridge runs for production-style alerts: same GCP VM or Cloud Run.
-Then route only CRITICAL Grafana alerts to the LINE webhook.
+For the current MVP, run the LINE bridge with Docker Compose and use broadcast mode.
+For future group-chat push, capture groupId and switch LINE_SEND_MODE=push.
 ```
 
 ## DBeaver
@@ -388,8 +389,9 @@ LINE alerting progress:
 LINE alert bridge is prepared.
 Local formatting test passed.
 Real LINE Messaging API broadcast test passed.
-Docker Compose optional profile is prepared.
-Grafana LINE webhook contact point is provisioned but not routed yet.
+Docker Compose starts the LINE bridge as part of the default stack.
+Grafana LINE webhook contact point is routed for critical project alerts.
+Full Grafana-to-LINE route test passed with POST /grafana HTTP 200.
 True group-chat push is waiting for groupId capture and LINE_SEND_MODE=push.
 ```
 

@@ -317,6 +317,7 @@ Current local mode:
 LINE_SEND_MODE=broadcast
 LINE_MIN_SEVERITY=critical
 LINE_DISABLE_RESOLVED=true
+Grafana critical route: enabled
 ```
 
 Run a direct LINE alert test:
@@ -335,6 +336,12 @@ Expected success:
 }
 ```
 
+Known verified route:
+
+```text
+Grafana Plant State Critical -> kafka-line-webhook -> LINE bridge /grafana -> HTTP 200
+```
+
 Run the bridge locally:
 
 ```bash
@@ -350,7 +357,7 @@ curl http://localhost:8080/health
 Docker Compose bridge option:
 
 ```bash
-docker compose --profile line-alerts up -d line-alert-bridge
+docker compose up -d line-alert-bridge
 ```
 
 Security rule:
@@ -363,7 +370,6 @@ Do not write LINE tokens into docs or Git.
 Current limitation:
 
 ```text
-The Grafana LINE contact point is provisioned but not routed yet.
 True group-chat push needs a captured groupId and LINE_SEND_MODE=push.
 ```
 

@@ -495,6 +495,7 @@ Current LINE status:
 | Messaging API | Enabled |
 | Current send mode | `broadcast` |
 | Direct API test | Passed with HTTP 200 |
+| Grafana route test | Passed with `POST /grafana` HTTP 200 |
 
 Cost-control rule:
 
@@ -517,6 +518,13 @@ Grafana webhook contact point
 → LINE alert bridge
 → LINE Messaging API
 → LINE Official Account friends or a future group target
+```
+
+Current routing:
+
+```text
+Project alerts -> Gmail
+Critical project alerts -> Gmail and LINE
 ```
 
 Prepared files:
@@ -584,19 +592,32 @@ Latest successful result:
 }
 ```
 
+Full Grafana route verification:
+
+```text
+Temporary critical PostgreSQL rows
+→ Grafana Plant State Critical rule
+→ Notification policy critical route
+→ kafka-line-webhook
+→ LINE bridge /grafana endpoint
+→ HTTP 200
+```
+
+Temporary rows are deleted after the verification test.
+
 Run the local bridge:
 
 ```bash
 scripts/run_line_bridge_local.sh
 ```
 
-Run the bridge through Docker Compose only when needed:
+Run the bridge through Docker Compose:
 
 ```bash
-docker compose --profile line-alerts up -d line-alert-bridge
+docker compose up -d line-alert-bridge
 ```
 
-The Grafana `kafka-line-webhook` contact point is provisioned but intentionally not routed yet. Do not route production alerts to LINE until the bridge runtime is chosen and tested end to end.
+The Grafana `kafka-line-webhook` contact point is routed for critical project alerts. Gmail remains routed for all project alerts.
 
 Future group-chat path:
 

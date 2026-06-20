@@ -11,7 +11,5 @@ contactPoints:
           url: $LINE_ALERT_WEBHOOK_URL
           httpMethod: POST
           title: "Kafka Monitoring: {{ template \"default.title\" . }}"
-
-# This contact point is intentionally not in the notification policy yet.
-# Enable routing only after the LINE bridge runtime and
-# LINE_ALERT_WEBHOOK_URL have been tested end to end.
+# Routed by the notification policy for critical project alerts.
+# The bridge must be running and LINE_CHANNEL_ACCESS_TOKEN must be set for real delivery.

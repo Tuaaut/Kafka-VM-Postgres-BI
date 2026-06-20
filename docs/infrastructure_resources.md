@@ -25,7 +25,7 @@ Local services:
 | Producer | `kafka_vm_producer` | local `Dockerfile` build | n/a | Emits machine events every 60 seconds. |
 | Consumer | `kafka_vm_consumer` | local `Dockerfile` build | n/a | Writes Kafka events into PostgreSQL. |
 | Grafana | `kafka_vm_grafana` | `grafana/grafana-oss:11.5.2` | 3000 | Monitoring dashboard and alerting UI. |
-| LINE bridge | `line-alert-bridge` | local `Dockerfile` build | 8080 | Optional webhook bridge from Grafana to LINE Messaging API. |
+| LINE bridge | `kafka_vm_line_alert_bridge` | local `Dockerfile` build | 8080 | Webhook bridge from Grafana to LINE Messaging API. |
 
 Kafka mode:
 
@@ -254,7 +254,8 @@ Provider: Kafka Monitoring Demo
 Channel ID: 2010459362
 Messaging API: enabled
 Current send mode: broadcast
-Status: direct LINE API test passed
+Status: direct LINE API test passed; Grafana critical-alert route configured
+Grafana route test: POST /grafana HTTP 200
 ```
 
 Do not store Gmail App Passwords, LINE access tokens, or LINE channel secrets in Markdown or Git.

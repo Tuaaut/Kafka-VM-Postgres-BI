@@ -16,6 +16,7 @@ Channel ID: 2010459362
 Messaging API: enabled
 Send mode used for first test: broadcast
 Real LINE API test result: HTTP 200
+Grafana-to-LINE route test: passed
 ```
 
 Secret handling:
@@ -48,6 +49,13 @@ Grafana alert rule
 -> LINE alert bridge
 -> LINE Messaging API
 -> LINE Official Account audience
+```
+
+Current Grafana routing:
+
+```text
+Project alerts -> Gmail
+Critical project alerts -> Gmail and LINE
 ```
 
 Current tested direct flow:
@@ -152,7 +160,30 @@ The LINE Messaging API accepted the request.
 The bridge can format and send the alert message.
 ```
 
-It does not yet prove Grafana webhook routing end to end, because the Grafana LINE contact point is prepared but not routed in the notification policy yet.
+It proves direct LINE delivery.
+
+## Grafana Route Test
+
+The full Grafana-to-LINE route was also tested.
+
+Test flow:
+
+```text
+Temporary critical rows inserted into PostgreSQL
+-> Plant State Critical rule evaluated by Grafana
+-> Grafana notification policy matched project + severity=critical
+-> kafka-line-webhook contact point called LINE bridge
+-> LINE bridge returned HTTP 200
+-> temporary rows deleted
+```
+
+Observed bridge log:
+
+```text
+POST /grafana HTTP/1.1" 200
+```
+
+This confirms that Grafana can reach the LINE bridge and that the critical-alert route is active.
 
 ## Local Bridge Run
 
@@ -179,7 +210,7 @@ Expected:
 Docker Compose bridge option:
 
 ```bash
-docker compose --profile line-alerts up -d line-alert-bridge
+docker compose up -d line-alert-bridge
 ```
 
 ## Grafana Contact Point
@@ -203,13 +234,13 @@ LINE_ALERT_WEBHOOK_URL=http://line-alert-bridge:8080/grafana
 Current routing status:
 
 ```text
-Not routed yet
+Routed for critical project alerts
 ```
 
 Reason:
 
 ```text
-The bridge needs a stable runtime first. For local Docker this can be the line-alert-bridge profile. For production it can run on the GCP VM or Cloud Run.
+Gmail keeps the searchable alert record. LINE receives only critical alerts for fast response.
 ```
 
 ## Cost Control
@@ -346,7 +377,6 @@ Recommended next step for this project:
 
 ```text
 Use broadcast mode for MVP.
-Route only CRITICAL Grafana alerts to LINE after deciding where the bridge should run.
 Move to group push mode later if the project needs a real team chat demonstration.
 ```
 

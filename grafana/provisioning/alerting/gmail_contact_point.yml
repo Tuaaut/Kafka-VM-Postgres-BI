@@ -51,10 +51,25 @@ policies:
     repeat_interval: 4h
     routes:
       - receiver: kafka-gmail-email
+        continue: true
         object_matchers:
           - - project
             - =
             - kafka_vm_postgres_bi
+        group_by:
+          - alertname
+          - severity
+        group_wait: 30s
+        group_interval: 5m
+        repeat_interval: 1h
+      - receiver: kafka-line-webhook
+        object_matchers:
+          - - project
+            - =
+            - kafka_vm_postgres_bi
+          - - severity
+            - =
+            - critical
         group_by:
           - alertname
           - severity

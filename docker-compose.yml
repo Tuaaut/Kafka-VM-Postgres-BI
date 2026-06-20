@@ -101,17 +101,17 @@ services:
   line-alert-bridge:
     build: .
     container_name: kafka_vm_line_alert_bridge
-    profiles:
-      - line-alerts
     environment:
       PORT: 8080
       LINE_CHANNEL_ACCESS_TOKEN: "${LINE_CHANNEL_ACCESS_TOKEN:-}"
       LINE_CHANNEL_SECRET: "${LINE_CHANNEL_SECRET:-}"
+      LINE_SEND_MODE: "${LINE_SEND_MODE:-broadcast}"
       LINE_TO_ID: "${LINE_TO_ID:-}"
       LINE_MIN_SEVERITY: "${LINE_MIN_SEVERITY:-critical}"
       LINE_DISABLE_RESOLVED: "${LINE_DISABLE_RESOLVED:-true}"
       GRAFANA_ROOT_URL: "${GRAFANA_ROOT_URL:-http://localhost:3000}"
     command: ["python", "-u", "alerting/line_alert_bridge.py"]
+    restart: unless-stopped
     ports:
       - "8080:8080"
 

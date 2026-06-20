@@ -56,6 +56,16 @@ LINE alerting: LINE Official Account created and Messaging API broadcast test pa
 LINE group push: not enabled yet; requires groupId capture and push-mode routing
 ```
 
+Current VM scheduling status:
+
+```text
+Compute Engine instance schedule: kafka-demo-uat-hours
+Start: 08:45 Asia/Bangkok
+Stop: 11:00 Asia/Bangkok
+Startup script: scripts/gcp_vm_startup.sh
+Purpose: UAT/demo runtime without 24/7 compute cost
+```
+
 Latest tested result:
 
 ```text
@@ -194,6 +204,7 @@ The final architecture is intentionally balanced:
 | --- | --- |
 | Resilience | Kafka buffers events and decouples producer from consumer. |
 | Cost efficiency | All services run on one small VM for the demo. |
+| Scheduled runtime | Compute Engine starts the VM before UAT and stops it afterward. |
 | Flexibility | PostgreSQL views can be changed without redesigning Kafka or Grafana. |
 | Cross-checking | DBeaver and terminal SQL can validate the same data Grafana displays. |
 | Dashboard reliability | Grafana queries PostgreSQL views instead of raw stream/log files. |

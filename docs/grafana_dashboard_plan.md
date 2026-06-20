@@ -217,12 +217,14 @@ Next alerting candidates:
 
 For the GCP Singapore VM, the dashboard can be opened through the SSH tunnel at `http://localhost:3001` or through the public VM URL when the VM and firewall are enabled. Alert emails should use the public VM URL. See `docs/gcp_vm_operations.md`.
 
+The VM is not intended to run 24/7 for normal UAT. Compute Engine instance schedule `kafka-demo-uat-hours` starts it at 08:45 and stops it at 11:00 Asia/Bangkok. The VM startup script starts Docker Compose automatically so the dashboard receives fresh producer data during the demo window.
+
 ## Future Improvement Ideas
 
 - Add a second dashboard for machine detail.
 - Add a dashboard variable for `machine_id`.
-- Move Gmail SMTP values to a secure VM-only environment file or secret pattern before relying on VM-side alerting long term.
-- Add LINE alerting as the fast response channel while Gmail remains the official alert record.
+- Monitor the scheduled UAT window and adjust start/stop time if a longer demo window is needed.
+- Move to true LINE group-chat push only if group collaboration is needed.
 - Add screenshots to `docs/screenshots/`.
 - Add a read-only demo user.
 - Add a public/shared access pattern only after GCP networking is secure.

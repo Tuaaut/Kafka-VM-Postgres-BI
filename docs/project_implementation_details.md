@@ -65,6 +65,7 @@ Why PostgreSQL is useful:
 - It supports DBeaver and terminal SQL checks.
 - It gives us a clear way to compare dashboard numbers against source tables.
 - It is cheap enough to run in the same Docker Compose stack on a small VM.
+- The VM startup script brings the Docker Compose stack back online after scheduled VM start.
 
 Why Grafana is useful:
 
@@ -79,6 +80,7 @@ Design quality goals:
 | --- | --- |
 | Resilience | Kafka buffers events and decouples producer and consumer. |
 | Cost efficiency | One small VM can run the whole demo stack. |
+| Runtime control | Compute Engine instance schedule starts the VM for UAT and stops it afterward. |
 | Flexibility | PostgreSQL views and Grafana panels can evolve without changing the event stream. |
 | Cross-checking | DBeaver and terminal SQL can validate Grafana dashboard values. |
 | Operational fit | Grafana is a natural fit for control-room monitoring and alerting. |
@@ -157,6 +159,15 @@ Grafana: http://localhost:3001 through SSH tunnel
 PostgreSQL/DBeaver: localhost:5433 through SSH tunnel
 Public Grafana dashboard: http://136.110.54.120:3000/d/kafka-machine-monitoring/kafka-machine-monitoring-control-room
 Alert email root URL: http://136.110.54.120:3000
+```
+
+Scheduled runtime:
+
+```text
+Resource policy: kafka-demo-uat-hours
+Start: 08:45 Asia/Bangkok
+Stop: 11:00 Asia/Bangkok
+Startup script: scripts/gcp_vm_startup.sh
 ```
 
 Avoid for full stack:
@@ -346,8 +357,10 @@ docker compose down
 
 ## Remaining Work
 
-1. Continue validating the Singapore e2-small VM during normal demo use.
-2. Capture dashboard screenshots for the portfolio.
-3. Move Gmail SMTP values to a secure VM-only `.env` or secret pattern before relying on VM-side alerting long term.
-4. Keep PostgreSQL private and use DBeaver through the SSH tunnel.
-5. Upgrade to e2-medium only if resource checks show pressure.
+1. Continue validating the Singapore e2-small VM during the scheduled UAT/demo window.
+2. Monitor whether the 08:45-11:00 runtime is enough for normal demos.
+3. Capture dashboard screenshots for the portfolio.
+4. Move to true LINE group-chat push only if group collaboration is needed.
+5. Consider Cloud Run alert bridge later only if public webhook access, retries, audit logging, or multi-channel routing become important.
+6. Keep PostgreSQL private and use DBeaver through the SSH tunnel.
+7. Upgrade to e2-medium only if resource checks show pressure.

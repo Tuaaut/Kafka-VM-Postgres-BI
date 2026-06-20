@@ -6,7 +6,7 @@ It reuses the same machine-generated manufacturing story as the earlier QR print
 
 ## Current Status
 
-Phase 1 local pipeline is working, and the same stack has been moved to a Singapore GCP Compute Engine VM for cloud testing.
+Phase 1 local pipeline is working, and the same stack has been moved to a Singapore GCP Compute Engine VM for cloud testing. The VM now uses a scheduled UAT/demo runtime instead of running 24/7.
 
 Validated locally:
 
@@ -31,6 +31,8 @@ Validated locally:
 - GCP Singapore VM `kafka-postgres-bi-sg` is running on `e2-small`.
 - VM Grafana is reachable from the Mac through `http://localhost:3001` using an SSH tunnel.
 - VM PostgreSQL is reachable from DBeaver through `localhost:5433` using an SSH tunnel.
+- Compute Engine instance schedule starts the VM at 08:45 and stops it at 11:00 Asia/Bangkok.
+- VM startup script starts Docker Compose automatically after scheduled start.
 
 The current result is good for the demo because it proves the monitoring layer reacts to warning and critical conditions.
 
@@ -129,6 +131,15 @@ Expected volume:
 ```
 
 This is small enough for a low-cost VM demo but active enough to make a dashboard feel live.
+
+Cloud runtime is intentionally scheduled:
+
+```text
+08:45 Asia/Bangkok - VM starts
+startup script - Docker Compose stack starts
+09:00-11:00 - UAT/demo window
+11:00 Asia/Bangkok - VM stops
+```
 
 ## Quick Start
 
@@ -269,4 +280,4 @@ No native PostgreSQL install is required on the Mac because PostgreSQL runs in D
 
 ## Next Build Step
 
-Keep testing the Singapore `e2-small` VM and monitor capacity. Gmail alert delivery is complete locally; the next optional alerting enhancement is LINE group-chat notification for faster operational response, while Gmail remains the official alert history.
+Keep testing the Singapore `e2-small` VM during the scheduled UAT window and monitor capacity. Gmail and LINE broadcast alerting are complete for the current design. The next optional alerting enhancement is true LINE group-chat push or a future Cloud Run alert bridge if the project needs a more production-style integration layer.

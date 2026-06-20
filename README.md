@@ -87,7 +87,7 @@ The local pipeline is working end to end:
 Producer -> Kafka -> Consumer -> PostgreSQL -> Grafana
 ```
 
-The project also has a tested GCP VM deployment path. The VM can be stopped when not in use to control cost.
+The project also has a tested GCP VM deployment path. The VM uses a scheduled UAT/demo window instead of running 24/7.
 
 Gmail alerting is also configured and verified:
 
@@ -127,7 +127,18 @@ Local dashboard:
 http://localhost:3000
 ```
 
-The public URL is available while the GCP VM is running. The VM can be stopped when the demo is not needed to control cost.
+The public URL is available while the GCP VM is running. The VM is scheduled to start before the UAT/demo window and stop afterward to control cost.
+
+Current scheduled demo window:
+
+```text
+Start: 08:45 Asia/Bangkok
+Stop: 11:00 Asia/Bangkok
+Resource policy: kafka-demo-uat-hours
+Startup script: scripts/gcp_vm_startup.sh
+```
+
+When the VM starts, the startup script runs Docker Compose so Kafka, PostgreSQL, Grafana, producer, consumer, and the LINE alert bridge come online automatically.
 
 Default local admin login:
 

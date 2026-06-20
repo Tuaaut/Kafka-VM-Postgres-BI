@@ -1,6 +1,6 @@
 # GCP VM Setup
 
-This project starts locally first, then moves the same Docker Compose stack to a small Google Cloud Compute Engine VM.
+This project starts locally first, then moves the same Docker Compose stack to a small Google Cloud Compute Engine VM. The VM is scheduled for a UAT/demo window instead of running 24/7.
 
 ## Why GCP For This Project
 
@@ -14,6 +14,16 @@ Kafka
 ```
 
 A small Compute Engine VM is easier to control than multiple managed services. The VM can be stopped when not testing, and the user already has a GCP project with budget alerts.
+
+Current scheduling decision:
+
+```text
+Use Compute Engine instance schedule.
+Do not use Cloud Run, GitHub Actions, or cron inside the VM for VM orchestration.
+Start: 08:45 Asia/Bangkok
+Stop: 11:00 Asia/Bangkok
+Startup script: scripts/gcp_vm_startup.sh
+```
 
 ## Current VM Path
 
@@ -67,11 +77,14 @@ GCP Compute Engine VM
 │   ├── PostgreSQL container: postgres:16
 │   ├── Grafana container: grafana/grafana-oss
 │   ├── Producer container
-│   └── Consumer container
+│   ├── Consumer container
+│   └── LINE alert bridge container
 └── Users open Grafana in a browser
 ```
 
 Kafka runs in KRaft mode. Zookeeper is not used.
+
+When the scheduled VM start happens, the startup script runs `docker compose up -d --build` so the full stack comes online automatically.
 
 ## Low-Cost Data Rate
 
@@ -229,6 +242,14 @@ Detailed tunnel, DBeaver, monitoring, stop/start, and upgrade commands are in `d
 
 ## Operations
 
+The normal cost-control path is the Compute Engine instance schedule:
+
+```text
+Resource policy: kafka-demo-uat-hours
+Start: 08:45 Asia/Bangkok
+Stop: 11:00 Asia/Bangkok
+```
+
 Stop containers but keep data:
 
 ```bash
@@ -289,4 +310,7 @@ gcloud compute instances start kafka-postgres-bi-sg --project YOUR_GCP_PROJECT_I
 - Grafana dashboard opens from the Mac.
 - PostgreSQL opens from DBeaver through SSH tunnel.
 - VM resource usage checked.
+- Instance schedule created and attached.
+- Startup script configured and tested.
+- Full scheduled-start stack verified, including LINE alert bridge.
 - Screenshots captured for portfolio.

@@ -80,6 +80,7 @@ services:
       GF_AUTH_ANONYMOUS_ENABLED: "true"
       GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
       GF_AUTH_DISABLE_LOGIN_FORM: "true"
+      GF_SERVER_ROOT_URL: "${GRAFANA_ROOT_URL:-http://localhost:3000}"
       GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/kafka_control_room.json
       GF_SMTP_ENABLED: "${GRAFANA_SMTP_ENABLED:-false}"
       GF_SMTP_HOST: "${GRAFANA_SMTP_HOST:-smtp.gmail.com:587}"
@@ -89,12 +90,30 @@ services:
       GF_SMTP_FROM_NAME: "${GRAFANA_SMTP_FROM_NAME:-Kafka Monitoring Grafana}"
       GF_SMTP_STARTTLS_POLICY: "${GRAFANA_SMTP_STARTTLS_POLICY:-MandatoryStartTLS}"
       GRAFANA_ALERT_EMAIL_TO: "${GRAFANA_ALERT_EMAIL_TO:-grafana-alerts@example.invalid}"
+      LINE_ALERT_WEBHOOK_URL: "${LINE_ALERT_WEBHOOK_URL:-http://line-alert-bridge:8080/grafana}"
     ports:
       - "3000:3000"
     volumes:
       - grafana_data:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
       - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+
+  line-alert-bridge:
+    build: .
+    container_name: kafka_vm_line_alert_bridge
+    profiles:
+      - line-alerts
+    environment:
+      PORT: 8080
+      LINE_CHANNEL_ACCESS_TOKEN: "${LINE_CHANNEL_ACCESS_TOKEN:-}"
+      LINE_CHANNEL_SECRET: "${LINE_CHANNEL_SECRET:-}"
+      LINE_TO_ID: "${LINE_TO_ID:-}"
+      LINE_MIN_SEVERITY: "${LINE_MIN_SEVERITY:-critical}"
+      LINE_DISABLE_RESOLVED: "${LINE_DISABLE_RESOLVED:-true}"
+      GRAFANA_ROOT_URL: "${GRAFANA_ROOT_URL:-http://localhost:3000}"
+    command: ["python", "-u", "alerting/line_alert_bridge.py"]
+    ports:
+      - "8080:8080"
 
 volumes:
   postgres_data:

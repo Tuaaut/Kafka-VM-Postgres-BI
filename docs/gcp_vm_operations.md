@@ -16,6 +16,7 @@ Disk: 30 GB standard persistent disk
 OS: Ubuntu 24.04 LTS
 External IP: EXTERNAL_IP_WHEN_RUNNING
 Access model: SSH tunnel first
+Public Grafana base URL for alert emails: http://136.110.54.120:3000
 ```
 
 The old US Central test VM was deleted after the Singapore VM was verified.
@@ -58,7 +59,15 @@ Mac browser
 → Grafana container
 ```
 
-This is intentional. It avoids opening Grafana publicly on the internet while we are testing.
+This is intentional for private testing. It avoids opening Grafana publicly on the internet while we are testing.
+
+For operations-team alert emails, do not use a Mac `localhost` link. Alert emails should use the public/reachable VM Grafana base URL:
+
+```text
+http://136.110.54.120:3000
+```
+
+This value is controlled by `GRAFANA_ROOT_URL` and passed into Grafana as `GF_SERVER_ROOT_URL`.
 
 ## Open Grafana Through SSH Tunnel
 
@@ -86,6 +95,19 @@ Dashboard: Kafka Monitoring / Kafka Machine Monitoring Control Room
 ```
 
 For a shared public demo, change the Grafana admin password first, then add a restricted firewall rule for trusted source IPs only. Do not expose PostgreSQL publicly.
+
+Public dashboard currently documented for demo sharing:
+
+```text
+http://136.110.54.120:3000/d/kafka-machine-monitoring/kafka-machine-monitoring-control-room
+```
+
+If the VM external IP changes, update `GRAFANA_ROOT_URL` and recreate Grafana so future email links stay correct:
+
+```bash
+perl -0pi -e 's#^GRAFANA_ROOT_URL=.*#GRAFANA_ROOT_URL=http://NEW_VM_EXTERNAL_IP:3000#m' .env
+docker compose up -d --force-recreate grafana
+```
 
 ## Open PostgreSQL For DBeaver Through SSH Tunnel
 

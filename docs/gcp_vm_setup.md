@@ -194,6 +194,14 @@ http://localhost:3001
 
 because the SSH tunnel forwards local port 3001 to Grafana on the VM.
 
+For operations-team alert emails, set the Grafana root URL to the public/reachable VM Grafana base URL, not the Mac tunnel URL:
+
+```text
+GRAFANA_ROOT_URL=http://136.110.54.120:3000
+```
+
+This controls the dashboard links inside Gmail alert emails. If the external IP changes, update `GRAFANA_ROOT_URL` in `.env` and recreate Grafana.
+
 For sharing with other users, use a restricted firewall rule for port `3000` only after changing the default Grafana admin password.
 
 Avoid opening PostgreSQL port `5432` to the internet.

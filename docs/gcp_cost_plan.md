@@ -10,9 +10,10 @@ Current status:
 Local Docker Compose stack works.
 Singapore GCP VM is running the same stack.
 Current VM: kafka-postgres-bi-sg, asia-southeast1-a, e2-small.
-Grafana is reached through localhost:3001 SSH tunnel.
+Grafana can be reached through localhost:3001 SSH tunnel for private testing.
+Alert email dashboard links use public VM base URL http://136.110.54.120:3000.
 PostgreSQL is reached through localhost:5433 SSH tunnel for DBeaver.
-Gmail SMTP is not configured yet.
+Gmail SMTP is configured and verified locally.
 ```
 
 Decision:
@@ -56,7 +57,7 @@ Machine type: e2-small
 vCPU / RAM: 2 shared vCPU, 2 GB RAM
 Boot disk: 30 GB standard persistent disk or balanced persistent disk
 OS: Ubuntu 24.04 LTS
-Access: SSH tunnel first, not public Grafana
+Access: SSH tunnel first for private testing; public Grafana only when intentionally sharing the demo
 ```
 
 Why:
@@ -136,7 +137,8 @@ gcloud compute ssh kafka-postgres-bi-sg --project YOUR_GCP_PROJECT_ID --zone asi
 ```
 
 - Do not open PostgreSQL port `5432`.
-- Open Grafana port `3000` only later, and only to trusted source IPs.
+- Open Grafana port `3000` only when sharing the demo, and only with the intended firewall/public-access posture.
+- Keep `GRAFANA_ROOT_URL` aligned with the URL users should open from alert emails.
 - Keep producer at:
 
 ```text
@@ -170,8 +172,9 @@ Verify pipeline and dashboard
 Phase 2:
 
 ```text
-Configure Gmail SMTP in VM-only .env
-Send one test alert email
+Gmail SMTP local setup verified
+Real Grafana alert email verified
+Move SMTP values to secure VM-only .env or secret pattern before relying on VM-side alerting long term
 Keep PostgreSQL private
 ```
 

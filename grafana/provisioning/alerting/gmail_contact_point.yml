@@ -10,7 +10,35 @@ contactPoints:
         settings:
           addresses: $GRAFANA_ALERT_EMAIL_TO
           singleEmail: false
-          subject: "Kafka Monitoring: {{ template \"default.title\" . }}"
+          subject: "Kafka Monitoring: [{{ .Status | toUpper }}] {{ .GroupLabels.alertname }} {{ .GroupLabels.severity }}"
+          message: |
+            Kafka Monitoring Alert
+
+            Status: {{ .Status | toUpper }}
+            Alert group: {{ .GroupLabels.alertname }}
+            Severity: {{ .GroupLabels.severity }}
+
+            {{ if .Alerts.Firing -}}
+            Firing alerts:
+            {{ range .Alerts.Firing }}
+            - Alert: {{ .Labels.alertname }}
+              Summary: {{ .Annotations.summary }}
+              Impact: {{ .Annotations.impact }}
+              Action plan:
+            {{ .Annotations.action_plan }}
+              Dashboard: {{ .DashboardURL }}
+              Silence: {{ .SilenceURL }}
+            {{ end }}
+            {{ end -}}
+
+            {{ if .Alerts.Resolved -}}
+            Resolved alerts:
+            {{ range .Alerts.Resolved }}
+            - Alert: {{ .Labels.alertname }}
+              Summary: {{ .Annotations.summary }}
+              Resolution note: {{ .Annotations.resolution_note }}
+            {{ end }}
+            {{ end -}}
 
 policies:
   - orgId: 1

@@ -224,6 +224,14 @@ http://localhost:3001
 
 That URL is also an SSH tunnel. `localhost:3001` on the Mac is forwarded to Grafana on the VM.
 
+Alert email dashboard links use the configured Grafana root URL:
+
+```text
+GRAFANA_ROOT_URL=http://136.110.54.120:3000
+```
+
+This is intentional for operations-team emails. A technician cannot open a link to the owner's Mac localhost. If the VM public IP changes, update `GRAFANA_ROOT_URL` in `.env` and recreate Grafana.
+
 ## Grafana Alert Rules
 
 Local alert rules are provisioned from:
@@ -253,6 +261,18 @@ scripts/configure_gmail_alerts.sh
 
 Use a Gmail App Password, not the normal Gmail password.
 
+Current verified Gmail alerting status:
+
+```text
+Sender: pattaratua@gmail.com
+Recipient: pattaratua@gmail.com
+Real SMTP test email: received
+Real Grafana Plant State Critical email: received
+Alert email message: customized with summary, impact, action plan, dashboard link, and resolution note
+```
+
+Do not write the Gmail App Password into docs or Git. It belongs only in local `.env` or a secure VM-only secret pattern.
+
 Recreate Grafana after changing SMTP environment variables:
 
 ```bash
@@ -279,7 +299,73 @@ Alerting → Contact points
 Alerting → Notification policies
 ```
 
-Before Gmail SMTP is configured, the contact point uses `grafana-alerts@example.invalid` and delivery attempts can fail. That is expected.
+If `.env` is missing or SMTP is disabled, the contact point falls back to placeholder values and delivery can fail. In the current local setup, Gmail SMTP has been configured and verified.
+
+## LINE Alerting
+
+LINE is prepared as the fast mobile response channel.
+
+Dedicated setup document:
+
+```text
+docs/line_official_account_alerting.md
+```
+
+Current local mode:
+
+```text
+LINE_SEND_MODE=broadcast
+LINE_MIN_SEVERITY=critical
+LINE_DISABLE_RESOLVED=true
+```
+
+Run a direct LINE alert test:
+
+```bash
+scripts/test_line_alert.sh
+```
+
+Expected success:
+
+```json
+{
+  "sent": true,
+  "status": 200,
+  "response": "{}"
+}
+```
+
+Run the bridge locally:
+
+```bash
+scripts/run_line_bridge_local.sh
+```
+
+Health check:
+
+```bash
+curl http://localhost:8080/health
+```
+
+Docker Compose bridge option:
+
+```bash
+docker compose --profile line-alerts up -d line-alert-bridge
+```
+
+Security rule:
+
+```text
+LINE_CHANNEL_ACCESS_TOKEN belongs only in local .env or a production secret store.
+Do not write LINE tokens into docs or Git.
+```
+
+Current limitation:
+
+```text
+The Grafana LINE contact point is provisioned but not routed yet.
+True group-chat push needs a captured groupId and LINE_SEND_MODE=push.
+```
 
 ## Reset Data
 

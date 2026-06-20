@@ -73,6 +73,8 @@ The same architecture can later be extended to send Kafka events into BigQuery, 
 - Python producer and consumer services
 - PostgreSQL for operational storage and SQL monitoring views
 - Grafana for the real-time dashboard and alert rules
+- Gmail SMTP for searchable operational alert history
+- LINE Messaging API for fast mobile alert notification
 - Docker Compose for local orchestration
 - GCP Compute Engine for optional cloud demo deployment
 - DBeaver for SQL inspection and validation
@@ -87,6 +89,22 @@ Producer -> Kafka -> Consumer -> PostgreSQL -> Grafana
 
 The project also has a tested GCP VM deployment path. The VM can be stopped when not in use to control cost.
 
+Gmail alerting is also configured and verified:
+
+```text
+Grafana alert rule -> Gmail email contact point -> pattaratua@gmail.com
+```
+
+The current email alert format includes status, severity, impact, action plan, dashboard link, and resolution note. Gmail is used as the official searchable alert record.
+
+LINE alerting is prepared and the first real LINE Messaging API test passed:
+
+```text
+Kafka Alert Bot -> LINE Messaging API broadcast -> LINE Official Account friends
+```
+
+LINE is the fast mobile response channel. Gmail remains the official alert-history channel.
+
 ## Grafana Access
 
 Public dashboard:
@@ -96,6 +114,12 @@ http://136.110.54.120:3000/d/kafka-machine-monitoring/kafka-machine-monitoring-c
 ```
 
 The public dashboard opens in anonymous viewer mode, so visitors do not need to register or log in.
+
+Grafana alert emails use this VM public base URL for dashboard links:
+
+```text
+http://136.110.54.120:3000
+```
 
 Local dashboard:
 
@@ -121,6 +145,7 @@ For deeper technical details, use these documents:
 - [KPI definitions](docs/kpi_definitions.md)
 - [Grafana dashboard plan](docs/grafana_dashboard_plan.md)
 - [Alerting and monitoring](docs/alerting_monitoring.md)
+- [LINE Official Account alerting](docs/line_official_account_alerting.md)
 - [Local runbook](docs/local_runbook.md)
 - [GCP VM operations](docs/gcp_vm_operations.md)
 

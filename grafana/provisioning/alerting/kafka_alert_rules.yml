@@ -91,6 +91,13 @@ groups:
         annotations:
           summary: Plant state is critical.
           description: The 15-minute control-room window crossed a critical threshold.
+          impact: Production monitoring has detected a critical condition in the recent machine event window.
+          action_plan: |
+            1. Open the Grafana control-room dashboard and confirm the Plant State panel.
+            2. Check the latest alert feed to identify the affected production line, machine, and reason.
+            3. Notify the responsible technician or production support owner to inspect the line and take action as soon as possible.
+            4. Keep the incident open until the dashboard returns to NORMAL or the root cause is confirmed.
+          resolution_note: Plant state is no longer critical in the current monitoring window.
         labels:
           project: kafka_vm_postgres_bi
           severity: critical
@@ -166,6 +173,14 @@ groups:
         annotations:
           summary: Kafka/PostgreSQL ingest lag is high.
           description: Latest ingest lag is above 300 seconds.
+          impact: The dashboard may be showing delayed production status because recent events are not reaching PostgreSQL quickly enough.
+          action_plan: |
+            1. Check whether the Kafka broker, producer, consumer, and PostgreSQL containers are running.
+            2. Inspect consumer logs for errors or slow inserts.
+            3. Confirm PostgreSQL is reachable and not under resource pressure.
+            4. If running on the VM, check memory, CPU, disk, and Docker container status.
+            5. Treat dashboard numbers as stale until ingest lag returns below the threshold.
+          resolution_note: Ingest lag has returned below the configured threshold.
         labels:
           project: kafka_vm_postgres_bi
           severity: warning

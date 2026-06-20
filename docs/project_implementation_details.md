@@ -155,6 +155,8 @@ Access:
 ```text
 Grafana: http://localhost:3001 through SSH tunnel
 PostgreSQL/DBeaver: localhost:5433 through SSH tunnel
+Public Grafana dashboard: http://136.110.54.120:3000/d/kafka-machine-monitoring/kafka-machine-monitoring-control-room
+Alert email root URL: http://136.110.54.120:3000
 ```
 
 Avoid for full stack:
@@ -177,21 +179,34 @@ Move to e2-medium only if resource monitoring shows pressure.
 
 ### Phase 4: Alerting Workflow
 
-Status: design prepared, external notification not implemented yet.
+Status: Gmail email alerting implemented and verified locally.
 
-First implementation can stay inside PostgreSQL and Grafana:
+Current implementation:
 
 ```text
 Kafka events
 → PostgreSQL alert views
-→ Grafana alert page / control-room page
+→ Grafana alert rules
+→ Gmail contact point
+→ operations-friendly alert email
 ```
 
-Later extension:
+Completed:
+
+- Grafana rules are provisioned as code.
+- Gmail contact point and notification policy are provisioned as code.
+- Gmail SMTP is configured through `.env`.
+- Direct SMTP test email was received.
+- Real Grafana `Plant State Critical` email was received.
+- Email body was customized with status, severity, impact, action plan, dashboard link, silence link, and resolution note.
+- `GRAFANA_ROOT_URL` points alert email links to the VM public Grafana base URL.
+
+Next optional extension:
 
 ```text
-PostgreSQL query or service
-→ email / Teams / Slack / ServiceNow / incident workflow
+Grafana webhook
+→ LINE Messaging API or Cloud Run bridge
+→ LINE group chat
 ```
 
 ## Event Contract
@@ -333,6 +348,6 @@ docker compose down
 
 1. Continue validating the Singapore e2-small VM during normal demo use.
 2. Capture dashboard screenshots for the portfolio.
-3. Configure Gmail SMTP alert delivery on the VM only when ready.
+3. Move Gmail SMTP values to a secure VM-only `.env` or secret pattern before relying on VM-side alerting long term.
 4. Keep PostgreSQL private and use DBeaver through the SSH tunnel.
 5. Upgrade to e2-medium only if resource checks show pressure.

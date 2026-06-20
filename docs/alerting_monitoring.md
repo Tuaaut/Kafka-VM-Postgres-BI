@@ -14,7 +14,9 @@ Are failures, warnings, or extreme readings increasing?
 
 ## Current Status
 
-PostgreSQL monitoring views are created, tested locally, and now running on the Singapore GCP VM.
+PostgreSQL monitoring views are created, tested locally, and running on the Singapore GCP VM.
+
+Gmail alert delivery is configured and verified.
 
 Latest local test result:
 
@@ -27,12 +29,17 @@ latest_lag_seconds = about 0.02
 
 This result is expected because the test event mix included enough failed events to trigger the critical threshold.
 
-Current GCP access uses SSH tunnels:
+Current dashboard access modes:
 
 ```text
-Grafana: http://localhost:3001
+Local Grafana: http://localhost:3000
+Public VM Grafana base URL for alert links: http://136.110.54.120:3000
+Public dashboard path: http://136.110.54.120:3000/d/kafka-machine-monitoring/kafka-machine-monitoring-control-room
+SSH tunnel fallback: http://localhost:3001
 PostgreSQL/DBeaver: localhost:5433
 ```
+
+The public VM URL only works while the VM is running and Grafana is exposed. The SSH tunnel URL only works from the Mac where the tunnel is open.
 
 ## Monitoring Architecture
 
@@ -62,7 +69,9 @@ The first version monitors:
 - Machine-level status is ranked as normal, warning, or critical.
 - Alert feed highlights outlier, extreme, or suspicious activity.
 - Grafana can query PostgreSQL through its provisioned PostgreSQL datasource.
-- Grafana local alert rules are provisioned as code.
+- Grafana alert rules are provisioned as code.
+- Grafana Gmail email contact point is provisioned as code.
+- Gmail SMTP is configured in local `.env` and real alert email delivery has been verified.
 
 ## Main SQL Objects
 
@@ -225,7 +234,7 @@ Current contact point:
 ```text
 Name: kafka-gmail-email
 Type: Email
-Default placeholder recipient: grafana-alerts@example.invalid
+Recipient: pattaratua@gmail.com
 ```
 
 Current notification policy:
@@ -235,9 +244,27 @@ Default receiver: kafka-gmail-email
 Project route: project = kafka_vm_postgres_bi
 ```
 
-The contact point and policy are loaded locally, but Gmail SMTP is disabled until `.env` contains real Gmail SMTP values.
+The contact point and policy are loaded by Grafana provisioning.
 
-Use this helper to configure Gmail locally:
+Current Gmail SMTP status:
+
+```text
+Configured: yes
+Sender: pattaratua@gmail.com
+Recipient: pattaratua@gmail.com
+Credential storage: local .env only
+Git status: .env is ignored
+Real SMTP test: passed
+Real Grafana alert email test: passed
+```
+
+Important security rule:
+
+```text
+Do not write the Gmail App Password into Markdown docs, screenshots, Git commits, or shared messages.
+```
+
+Use this helper only if SMTP needs to be reconfigured:
 
 ```bash
 scripts/configure_gmail_alerts.sh
@@ -265,16 +292,113 @@ Alerting -> Contact points
 Alerting -> Notification policies
 ```
 
-Expected local behavior before Gmail SMTP is configured:
+Expected behavior:
 
 ```text
-Grafana may show delivery errors because the active demo alert is routed to a placeholder email while SMTP is disabled.
+Active firing alerts are sent to the Gmail recipient.
+Resolved alerts may also send a resolved message because disableResolveMessage is false.
 ```
 
-Expected behavior after Gmail SMTP is configured:
+## Alert Email Message Format
+
+The original Grafana default email showed raw evaluator values such as `A=1`, `B=1`, and `C=1`. That proved the rule fired, but it was too technical for operations users.
+
+The contact point now uses a custom email subject and body.
+
+Subject pattern:
 
 ```text
-Active firing alerts can send email to the configured Gmail recipient.
+Kafka Monitoring: [FIRING] Plant State Critical critical
+```
+
+Body includes:
+
+- Alert status.
+- Alert group.
+- Severity.
+- Summary.
+- Impact.
+- Action plan.
+- Dashboard link.
+- Silence link.
+- Resolution note when the alert resolves.
+
+Current `Plant State Critical` action plan:
+
+```text
+1. Open the Grafana control-room dashboard and confirm the Plant State panel.
+2. Check the latest alert feed to identify the affected production line, machine, and reason.
+3. Notify the responsible technician or production support owner to inspect the line and take action as soon as possible.
+4. Keep the incident open until the dashboard returns to NORMAL or the root cause is confirmed.
+```
+
+This wording is intentionally less technical. The message is aimed at operations supervisors and production technicians, not only data engineers.
+
+## Grafana Root URL For Email Links
+
+Grafana uses `GF_SERVER_ROOT_URL` to build dashboard links in alert emails.
+
+Configured through Docker Compose:
+
+```text
+docker-compose.yml: GF_SERVER_ROOT_URL=${GRAFANA_ROOT_URL:-http://localhost:3000}
+```
+
+Current local `.env` value:
+
+```text
+GRAFANA_ROOT_URL=http://136.110.54.120:3000
+```
+
+Reason:
+
+```text
+Alert emails are for operations users. They cannot open a link to the owner's Mac localhost.
+Email links should point to the public/reachable VM Grafana URL.
+```
+
+If the VM external IP changes, update `GRAFANA_ROOT_URL` in the VM/local `.env` and recreate Grafana:
+
+```bash
+docker compose up -d --force-recreate grafana
+```
+
+If the project is run local-only for development, `GRAFANA_ROOT_URL=http://localhost:3000` is acceptable.
+
+## Verified Alert Tests
+
+Completed verification:
+
+```text
+1. SMTP credential was configured for Gmail using a Gmail App Password.
+2. Direct SMTP test email was sent and received.
+3. Temporary PostgreSQL rows were inserted to trigger Plant State Critical.
+4. Grafana changed Plant State Critical to active/firing.
+5. Gmail received the real Grafana alert email.
+6. Email body was improved with operations-friendly action plan text.
+7. GRAFANA_ROOT_URL was set to the VM public Grafana base URL.
+8. A final alert email was sent again to verify the action plan and VM URL.
+9. Temporary test rows were deleted after each test.
+```
+
+Temporary test-row pattern used during verification:
+
+```text
+grafana-email-test-*
+grafana-email-template-test-*
+grafana-action-plan-test-*
+grafana-final-email-test-*
+```
+
+Cleanup check:
+
+```sql
+SELECT COUNT(*) AS remaining_test_rows
+FROM machine_events_raw
+WHERE event_id LIKE 'grafana-email-test-%'
+   OR event_id LIKE 'grafana-email-template-test-%'
+   OR event_id LIKE 'grafana-action-plan-test-%'
+   OR event_id LIKE 'grafana-final-email-test-%';
 ```
 
 ## Operational Health Queries
@@ -332,29 +456,162 @@ This keeps the system live without making the VM unnecessarily expensive.
 
 ## Future Alerting Options
 
-Current local setup:
+Current setup:
 
 ```text
 PostgreSQL alert views
 → Grafana dashboard alert feed
 → Grafana local alert rules
+→ Gmail email contact point
+→ Gmail alert history / audit record
+→ LINE Messaging API test channel
 ```
 
-Later options:
+Current channel roles:
 
 ```text
-Scheduled SQL check
-→ email
+Gmail = official searchable alert history.
+LINE = fast mobile response for critical incidents.
 ```
+
+## LINE Official Account Alerting
+
+LINE alerting is now prepared and the first direct LINE Messaging API test has passed.
+
+Dedicated reusable setup document:
 
 ```text
-Python alert service
-→ Teams / Slack webhook
+docs/line_official_account_alerting.md
 ```
+
+Current LINE status:
+
+| Item | Value |
+| --- | --- |
+| Official Account | `Kafka Alert Bot` |
+| Basic ID | `@658ndqox` |
+| Provider | `Kafka Monitoring Demo` |
+| Channel ID | `2010459362` |
+| Messaging API | Enabled |
+| Current send mode | `broadcast` |
+| Direct API test | Passed with HTTP 200 |
+
+Cost-control rule:
 
 ```text
-Incident workflow
-→ ServiceNow / Jira / PagerDuty
+Only CRITICAL alerts should go to LINE at first.
+WARNING alerts should stay in Grafana/Gmail until the alert volume is proven stable.
+Resolved LINE messages are disabled by default.
 ```
 
-Keep Gmail SMTP disabled until we intentionally configure it. For the current GCP VM, use a secure VM-only `.env` file or secret manager pattern before sending real email alerts.
+Reason:
+
+```text
+LINE message usage is counted by people reached. A small test audience keeps message usage low.
+```
+
+Prepared implementation:
+
+```text
+Grafana webhook contact point
+→ LINE alert bridge
+→ LINE Messaging API
+→ LINE Official Account friends or a future group target
+```
+
+Prepared files:
+
+```text
+alerting/line_alert_bridge.py
+scripts/configure_line_alerts.sh
+scripts/run_line_bridge_local.sh
+scripts/test_line_alert.sh
+grafana/provisioning/alerting/line_webhook_contact_point.yml
+docs/line_official_account_alerting.md
+```
+
+The bridge currently supports:
+
+- `/health` health check.
+- `/grafana` endpoint for Grafana webhook payloads.
+- `/line/webhook` endpoint to capture LINE webhook events and identify `groupId`, `roomId`, or `userId`.
+- `broadcast` mode for sending to LINE Official Account friends without `LINE_TO_ID`.
+- `push` mode for sending to one user, group, or room when `LINE_TO_ID` is known.
+- Critical-only routing by default through `LINE_MIN_SEVERITY=critical`.
+- Resolved-message suppression by default through `LINE_DISABLE_RESOLVED=true`.
+- Dry-run behavior when required settings are missing.
+
+Current required input for broadcast mode:
+
+```text
+LINE_CHANNEL_ACCESS_TOKEN
+LINE_SEND_MODE=broadcast
+```
+
+Required input for future push/group mode:
+
+```text
+LINE_CHANNEL_ACCESS_TOKEN
+LINE_SEND_MODE=push
+LINE_TO_ID=<userId, groupId, or roomId>
+```
+
+Optional input for webhook signature validation:
+
+```text
+LINE_CHANNEL_SECRET
+```
+
+Use this helper to save local LINE settings:
+
+```bash
+scripts/configure_line_alerts.sh
+```
+
+Run a local direct LINE test:
+
+```bash
+scripts/test_line_alert.sh
+```
+
+Latest successful result:
+
+```json
+{
+  "sent": true,
+  "status": 200,
+  "response": "{}"
+}
+```
+
+Run the local bridge:
+
+```bash
+scripts/run_line_bridge_local.sh
+```
+
+Run the bridge through Docker Compose only when needed:
+
+```bash
+docker compose --profile line-alerts up -d line-alert-bridge
+```
+
+The Grafana `kafka-line-webhook` contact point is provisioned but intentionally not routed yet. Do not route production alerts to LINE until the bridge runtime is chosen and tested end to end.
+
+Future group-chat path:
+
+```text
+Enable bot group join
+→ add bot to LINE group
+→ expose /line/webhook publicly
+→ capture groupId
+→ set LINE_SEND_MODE=push and LINE_TO_ID=<groupId>
+→ route Grafana CRITICAL alerts to LINE
+```
+
+Other possible future integrations:
+
+- Microsoft Teams Workflows if a suitable Microsoft 365 work/school account is available.
+- Slack webhook if the project needs a more global enterprise chat example.
+- PagerDuty, Jira, ServiceNow, or another incident workflow for a more production-like incident-management layer.
+- Cloud Run alert bridge if direct webhook payloads need formatting, routing, retries, or audit logging.

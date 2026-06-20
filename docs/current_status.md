@@ -46,6 +46,7 @@ Container: kafka_vm_grafana
 Image: grafana/grafana-oss:11.5.2
 Port: 3000
 URL: http://localhost:3000
+Alert email/dashboard root URL: http://136.110.54.120:3000
 User: admin
 Password: admin
 Dashboard: Kafka Monitoring / Kafka Machine Monitoring Control Room
@@ -99,6 +100,11 @@ Datasource: Machine Monitoring Postgres
 Dashboard: Kafka Machine Monitoring Control Room
 Dashboard includes top KPIs, event flow, machine board, production line KPIs, production line event flow, and alert feed
 Local alert rules: Plant State Critical, Ingest Lag Above 300s
+Gmail email contact point: kafka-gmail-email
+Gmail recipient: pattaratua@gmail.com
+Alert email root URL: http://136.110.54.120:3000
+LINE Official Account: Kafka Alert Bot
+LINE test mode: broadcast
 ```
 
 ## Confirmed GCP Singapore Result
@@ -121,6 +127,8 @@ Confirmed:
 ```text
 Docker Compose stack is running on the VM.
 Grafana dashboard opens from the Mac through http://localhost:3001.
+Public Grafana dashboard URL is documented as http://136.110.54.120:3000/d/kafka-machine-monitoring/kafka-machine-monitoring-control-room.
+Alert email dashboard links use root URL http://136.110.54.120:3000.
 PostgreSQL opens from DBeaver through localhost:5433.
 Rows are increasing in PostgreSQL.
 control_room_current_status returns live values.
@@ -129,9 +137,9 @@ The old US Central VM was deleted after Singapore was verified.
 
 See `docs/gcp_vm_operations.md` for the tunnel, DBeaver, monitoring, stop/start, and upgrade commands.
 
-## Alerting Pause Point
+## Confirmed Gmail Alerting Result
 
-Grafana alerting is paused at a safe point.
+Grafana email alerting is now configured and verified locally.
 
 Completed:
 
@@ -139,24 +147,113 @@ Completed:
 Alert rules are provisioned as code.
 Gmail contact point is provisioned as code.
 Notification policy routes project alerts to the Gmail contact point.
+Gmail SMTP is enabled in local .env.
+Gmail sender: pattaratua@gmail.com.
+Gmail recipient: pattaratua@gmail.com.
+SMTP test email was received.
+Real Grafana alert email was received from the Plant State Critical rule.
+Alert email body was customized for operations users with summary, impact, action plan, dashboard link, and resolution note.
+Grafana root URL is explicitly configured so alert links use the VM public Grafana base URL instead of localhost.
 ```
 
-Not completed yet:
+Current local secret handling:
 
 ```text
-Gmail SMTP is not enabled with a real Gmail App Password.
-No real email alert has been sent yet.
+Gmail SMTP values are stored in local .env only.
+.env is ignored by Git.
+The Gmail App Password must not be committed or written into Markdown docs.
 ```
 
-This is safe to leave as-is. Grafana may show delivery errors because the current contact point uses the placeholder `grafana-alerts@example.invalid` while SMTP is disabled.
+Latest verified email behavior:
 
-Resume command:
-
-```bash
-scripts/configure_gmail_alerts.sh
+```text
+1. A direct SMTP test email was sent and received with subject:
+   Kafka Monitoring Grafana SMTP test
+2. A real Grafana alert was triggered by temporary test rows.
+3. Gmail received the Plant State Critical alert.
+4. The alert email showed an operations-friendly action plan instead of raw A/B/C evaluator output.
+5. Test rows were deleted after each verification.
+6. The database returned to NO_DATA/NORMAL after cleanup depending on whether live producer data existed in the 15-minute window.
 ```
 
-Use a Gmail App Password, not the normal Gmail password.
+Current `Plant State Critical` action plan:
+
+```text
+1. Open the Grafana control-room dashboard and confirm the Plant State panel.
+2. Check the latest alert feed to identify the affected production line, machine, and reason.
+3. Notify the responsible technician or production support owner to inspect the line and take action as soon as possible.
+4. Keep the incident open until the dashboard returns to NORMAL or the root cause is confirmed.
+```
+
+Useful configuration files:
+
+```text
+grafana/provisioning/alerting/kafka_alert_rules.yml
+grafana/provisioning/alerting/gmail_contact_point.yml
+docker-compose.yml
+.env.example
+```
+
+If SMTP needs to be reconfigured later, use `scripts/configure_gmail_alerts.sh`. Use a Gmail App Password, not the normal Gmail password.
+
+## Confirmed LINE Alerting Result
+
+LINE alerting is prepared as the fast mobile response channel.
+
+Completed:
+
+```text
+LINE Official Account was created.
+Messaging API was enabled.
+LINE channel access token was generated and saved only in local .env.
+LINE bridge was added for Grafana webhook payloads.
+Broadcast mode was added so first testing does not require LINE_TO_ID.
+Real LINE Messaging API test returned HTTP 200.
+```
+
+Current LINE resources:
+
+```text
+Official Account name: Kafka Alert Bot
+Basic ID: @658ndqox
+Provider: Kafka Monitoring Demo
+Channel ID: 2010459362
+Current send mode: broadcast
+Current target: LINE Official Account friends/followers
+```
+
+Current local secret handling:
+
+```text
+LINE_CHANNEL_ACCESS_TOKEN is stored in local .env only.
+.env is ignored by Git.
+LINE tokens and secrets must not be written into Markdown docs.
+```
+
+Useful files:
+
+```text
+docs/line_official_account_alerting.md
+alerting/line_alert_bridge.py
+scripts/configure_line_alerts.sh
+scripts/run_line_bridge_local.sh
+scripts/test_line_alert.sh
+grafana/provisioning/alerting/line_webhook_contact_point.yml
+```
+
+Current limitation:
+
+```text
+Grafana LINE webhook contact point is prepared but not routed yet.
+True LINE group-chat push is not enabled yet because groupId has not been captured.
+```
+
+Next LINE step:
+
+```text
+Decide where the bridge runs for production-style alerts: same GCP VM or Cloud Run.
+Then route only CRITICAL Grafana alerts to the LINE webhook.
+```
 
 ## DBeaver
 
@@ -271,7 +368,8 @@ gcloud compute ssh kafka-postgres-bi-sg --project YOUR_GCP_PROJECT_ID --zone asi
 - Start locally first, then run the same stack on the GCP VM.
 - Use Singapore `e2-small` as the current low-cost demo VM.
 - Upgrade to `e2-medium` only if Grafana, Kafka, PostgreSQL, or alerting becomes unstable.
-- Keep Gmail SMTP disabled until we intentionally configure it in a local or VM-only `.env` file.
+- Gmail SMTP is configured locally and verified. Keep SMTP secrets only in `.env` or a VM-only secret pattern.
+- Alert email dashboard links should use `GRAFANA_ROOT_URL=http://136.110.54.120:3000` for the operations-team/public VM dashboard experience.
 
 ## Known Notes
 
@@ -282,7 +380,27 @@ gcloud compute ssh kafka-postgres-bi-sg --project YOUR_GCP_PROJECT_ID --zone asi
 
 ## Next Step
 
-Continue validating the Singapore VM dashboard and resource usage. Next optional build step is Gmail SMTP alert delivery on the VM after the dashboard and VM capacity remain stable.
+Continue validating the Singapore VM dashboard and resource usage. The next optional build step is LINE group-chat alerting for immediate response, while Gmail remains the official searchable alert record.
+
+LINE alerting progress:
+
+```text
+LINE alert bridge is prepared.
+Local formatting test passed.
+Real LINE Messaging API broadcast test passed.
+Docker Compose optional profile is prepared.
+Grafana LINE webhook contact point is provisioned but not routed yet.
+True group-chat push is waiting for groupId capture and LINE_SEND_MODE=push.
+```
+
+LINE cost-control decision:
+
+```text
+Send only CRITICAL alerts to LINE at first.
+Keep WARNING alerts in Grafana/Gmail.
+Disable resolved LINE messages by default.
+Use a small test group to keep message usage low.
+```
 
 Useful local dashboard sources:
 

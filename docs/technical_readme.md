@@ -20,7 +20,11 @@ Validated locally:
 - Grafana PostgreSQL datasource is provisioned.
 - Grafana dashboard `Kafka Machine Monitoring Control Room` is provisioned.
 - Grafana local alert rules are provisioned for critical plant state and high ingest lag.
-- Grafana Gmail email contact point is provisioned; real sending requires local `.env` Gmail SMTP values.
+- Grafana Gmail email contact point is provisioned and verified.
+- Gmail SMTP is configured in local `.env`; the App Password is kept out of Git.
+- Real Grafana alert email delivery was tested with `Plant State Critical`.
+- Alert email content now includes operations-friendly summary, impact, action plan, dashboard link, and resolution note.
+- Alert email dashboard links use `GRAFANA_ROOT_URL=http://136.110.54.120:3000`.
 - DBeaver local PostgreSQL connection is configured.
 - Fast local test inserted 60 rows into PostgreSQL.
 - Latest tested control-room result returned `CRITICAL` because the test data intentionally reached a 10.00% failure rate.
@@ -46,6 +50,12 @@ Grafana URL: http://localhost:3001
 DBeaver host: localhost
 DBeaver port: 5433
 VM: kafka-postgres-bi-sg, asia-southeast1-a
+```
+
+Public VM dashboard URL used in alert emails:
+
+```text
+http://136.110.54.120:3000/d/kafka-machine-monitoring/kafka-machine-monitoring-control-room
 ```
 
 ## Business Objective
@@ -259,4 +269,4 @@ No native PostgreSQL install is required on the Mac because PostgreSQL runs in D
 
 ## Next Build Step
 
-Keep testing the Singapore `e2-small` VM, monitor capacity, and decide whether to configure Gmail SMTP alert delivery on the VM or upgrade to `e2-medium` only if resource pressure appears.
+Keep testing the Singapore `e2-small` VM and monitor capacity. Gmail alert delivery is complete locally; the next optional alerting enhancement is LINE group-chat notification for faster operational response, while Gmail remains the official alert history.

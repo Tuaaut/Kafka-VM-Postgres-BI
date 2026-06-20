@@ -44,6 +44,16 @@ VM: kafka-postgres-bi-sg
 Zone: asia-southeast1-a
 Grafana tunnel: http://localhost:3001
 PostgreSQL/DBeaver tunnel: localhost:5433
+Public Grafana dashboard: http://136.110.54.120:3000/d/kafka-machine-monitoring/kafka-machine-monitoring-control-room
+Alert email root URL: http://136.110.54.120:3000
+```
+
+Current alerting status:
+
+```text
+Gmail alerting: configured and verified for official searchable alert history
+LINE alerting: LINE Official Account created and Messaging API broadcast test passed
+LINE group push: not enabled yet; requires groupId capture and push-mode routing
 ```
 
 Latest tested result:
@@ -95,10 +105,12 @@ Machine / Production Line Simulator
                 |
                 v
           PostgreSQL
-                |
-                v
+        |
+        v
    Grafana Dashboard
        Real-Time Monitoring
+       Gmail Alert History
+       LINE Fast Mobile Alerting
 
 
 Future Historical Pipeline
@@ -169,6 +181,12 @@ Why Grafana is the dashboard layer:
 - It is lightweight enough for a small VM demo.
 - It is easier to share with viewers than direct database access.
 - It keeps the operational dashboard separate from deeper historical analytics.
+
+Why alerting uses two channels:
+
+- Gmail keeps an official searchable record of alerts.
+- LINE gives faster mobile attention for critical incidents.
+- Critical alerts can reach technicians quickly while Gmail keeps the audit trail.
 
 The final architecture is intentionally balanced:
 
@@ -499,15 +517,32 @@ Objectives:
 Status:
 
 ```text
-Future phase
+Gmail alerting working
 ```
 
-Possible integration:
+Current integration:
 
 ```text
-PostgreSQL alert view
-→ alert service
-→ email / Teams / Slack / ServiceNow
+PostgreSQL alert views
+→ Grafana alert rules
+→ Gmail email contact point
+→ operations-friendly alert email
+```
+
+Completed:
+
+- Gmail SMTP configured with a Gmail App Password in local `.env`.
+- Real SMTP test email received.
+- Real Grafana `Plant State Critical` email received.
+- Alert email message customized with impact, action plan, dashboard link, and resolution note.
+- Alert email links use the VM public Grafana root URL.
+
+Next optional channel:
+
+```text
+Grafana webhook
+→ LINE Messaging API or Cloud Run bridge
+→ LINE group chat
 ```
 
 ## Portfolio Value

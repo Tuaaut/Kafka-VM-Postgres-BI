@@ -1,0 +1,17 @@
+apiVersion: 1
+
+contactPoints:
+  - orgId: 1
+    name: kafka-line-webhook
+    receivers:
+      - uid: kafka_line_webhook
+        type: webhook
+        disableResolveMessage: true
+        settings:
+          url: $LINE_ALERT_WEBHOOK_URL
+          httpMethod: POST
+          title: "Kafka Monitoring: {{ template \"default.title\" . }}"
+
+# This contact point is intentionally not in the notification policy yet.
+# Enable routing only after the LINE bridge runtime and
+# LINE_ALERT_WEBHOOK_URL have been tested end to end.

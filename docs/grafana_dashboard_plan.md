@@ -173,14 +173,14 @@ Grafana OSS supports basic users, teams, folders, and dashboard permissions. For
 
 ## Alerting Direction
 
-Grafana now has local alert rules provisioned from code.
+Grafana now has alert rules provisioned from code.
 
 Current local rules:
 
 - `Plant State Critical`
 - `Ingest Lag Above 300s`
 
-These rules are provisioned as code. A Gmail email contact point is also provisioned, but real email sending requires Gmail SMTP values in a secure local or VM-only `.env` file.
+These rules are provisioned as code. A Gmail email contact point is also provisioned and real email delivery has been verified.
 
 Gmail setup helper:
 
@@ -188,12 +188,21 @@ Gmail setup helper:
 scripts/configure_gmail_alerts.sh
 ```
 
+Current Gmail alerting result:
+
+```text
+Grafana alert rule -> Gmail contact point -> pattaratua@gmail.com
+```
+
+The email format is customized for operations users with summary, impact, action plan, dashboard link, silence link, and resolution note. Alert emails use `GRAFANA_ROOT_URL` so dashboard links point to the VM public Grafana URL instead of the owner's Mac localhost.
+
 Next alerting candidates:
 
 - Failure rate is above 10%.
 - Any machine status is `CRITICAL`.
 - Critical alert count is above a chosen threshold.
 - No events received for more than one producer cycle.
+- LINE group-chat notification for immediate team response.
 
 ## Demo Flow
 
@@ -206,13 +215,14 @@ Next alerting candidates:
 7. Run the producer.
 8. Watch status, trend, machine board, and alert feed update.
 
-For the GCP Singapore VM, open Grafana through the SSH tunnel at `http://localhost:3001`. See `docs/gcp_vm_operations.md`.
+For the GCP Singapore VM, the dashboard can be opened through the SSH tunnel at `http://localhost:3001` or through the public VM URL when the VM and firewall are enabled. Alert emails should use the public VM URL. See `docs/gcp_vm_operations.md`.
 
 ## Future Improvement Ideas
 
 - Add a second dashboard for machine detail.
 - Add a dashboard variable for `machine_id`.
-- Move Gmail SMTP values to a secure VM-only environment file or secret pattern before sending real email alerts from GCP.
+- Move Gmail SMTP values to a secure VM-only environment file or secret pattern before relying on VM-side alerting long term.
+- Add LINE alerting as the fast response channel while Gmail remains the official alert record.
 - Add screenshots to `docs/screenshots/`.
 - Add a read-only demo user.
 - Add a public/shared access pattern only after GCP networking is secure.

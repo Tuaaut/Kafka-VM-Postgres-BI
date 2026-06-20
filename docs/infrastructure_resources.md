@@ -13,6 +13,7 @@ Mac
 → PostgreSQL container
 → Python producer and consumer containers
 → DBeaver / Grafana
+→ optional LINE alert bridge
 ```
 
 Local services:
@@ -24,6 +25,7 @@ Local services:
 | Producer | `kafka_vm_producer` | local `Dockerfile` build | n/a | Emits machine events every 60 seconds. |
 | Consumer | `kafka_vm_consumer` | local `Dockerfile` build | n/a | Writes Kafka events into PostgreSQL. |
 | Grafana | `kafka_vm_grafana` | `grafana/grafana-oss:11.5.2` | 3000 | Monitoring dashboard and alerting UI. |
+| LINE bridge | `line-alert-bridge` | local `Dockerfile` build | 8080 | Optional webhook bridge from Grafana to LINE Messaging API. |
 
 Kafka mode:
 
@@ -220,10 +222,47 @@ PostgreSQL image: postgres:16
 Python version: project Docker image runtime
 DBeaver connection: Kafka VM Postgres BI - GCP Singapore Tunnel
 Grafana URL: http://localhost:3001 through SSH tunnel
+Public Grafana dashboard: http://136.110.54.120:3000/d/kafka-machine-monitoring/kafka-machine-monitoring-control-room
+Alert email root URL: http://136.110.54.120:3000
 Grafana admin user: admin
 Grafana read-only users: not created yet
 Grafana dashboard: Kafka Monitoring / Kafka Machine Monitoring Control Room
 Grafana dashboard file: grafana/dashboards/kafka_control_room.json
+Grafana Gmail contact point: kafka-gmail-email
+Grafana Gmail recipient: pattaratua@gmail.com
+```
+
+## External Alerting Resources
+
+Gmail:
+
+```text
+Purpose: official searchable alert history
+Sender: pattaratua@gmail.com
+Recipient: pattaratua@gmail.com
+Credential location: local .env only
+Status: configured and verified
+```
+
+LINE:
+
+```text
+Purpose: fast mobile alert notification
+Official Account: Kafka Alert Bot
+Basic ID: @658ndqox
+Provider: Kafka Monitoring Demo
+Channel ID: 2010459362
+Messaging API: enabled
+Current send mode: broadcast
+Status: direct LINE API test passed
+```
+
+Do not store Gmail App Passwords, LINE access tokens, or LINE channel secrets in Markdown or Git.
+
+Dedicated LINE setup notes:
+
+```text
+docs/line_official_account_alerting.md
 ```
 
 Operational runbook:
@@ -243,6 +282,10 @@ docs/gcp_vm_operations.md
 - Keep PostgreSQL private whenever possible.
 - For sharing, expose Grafana carefully instead of exposing PostgreSQL.
 - If Grafana is exposed on a VM, restrict firewall source IPs and change the default admin password.
+- Keep Gmail SMTP secrets only in local `.env` or a secure VM-only secret pattern.
+- Keep LINE access tokens only in local `.env` or a secure VM-only secret pattern.
+- Send only CRITICAL alerts to LINE at first.
+- Keep `GRAFANA_ROOT_URL` aligned with the public/reachable URL that operations users should open from alert emails.
 - Keep historical analytics as a later phase.
 - Use the existing GCP budget alert as the first guardrail.
 

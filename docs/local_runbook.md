@@ -185,11 +185,11 @@ Password: monitoring_password
 
 This uses an SSH tunnel to the VM. `localhost:5433` on the Mac is forwarded to PostgreSQL on the VM.
 
-## Offline Local PostgreSQL Mirror
+## Offline Review From GCS Export
 
-The VM PostgreSQL database is unavailable when the VM is stopped. For offline review, sync the VM rows into the local Docker PostgreSQL database while the VM is running.
+The VM PostgreSQL database is unavailable when the VM is stopped. For offline review, the VM exports PostgreSQL snapshots to Cloud Storage before shutdown. The Mac does not need to be online during the VM export.
 
-Current local mirror target:
+Current local import target:
 
 ```text
 Host: localhost
@@ -198,27 +198,39 @@ Database: machine_monitoring
 User: monitoring_user
 ```
 
-Sync command:
-
-```bash
-scripts/sync_vm_postgres_to_local.sh
-```
-
-What it does:
+GCS export bucket:
 
 ```text
-1. Confirms the VM is RUNNING.
-2. Starts local PostgreSQL through Docker Compose if needed.
-3. Opens a temporary SSH tunnel to VM PostgreSQL on local port 55433.
-4. Reads the local max ingest_time.
-5. Exports newer VM machine_events_raw rows to CSV.
-6. Imports them into local machine_events_raw.
-7. Uses event_id conflict handling to avoid duplicate inserts.
+gs://kafka-postgres-bi-exports-retail-bigquery-project-webapp
 ```
 
-After sync, DBeaver can query the local PostgreSQL connection even when the VM is stopped.
+Export path pattern:
 
-Useful local mirror queries:
+```text
+gs://kafka-postgres-bi-exports-retail-bigquery-project-webapp/kafka-postgres-bi/exports/YYYY-MM-DD/HHMMSS/
+```
+
+Exported files:
+
+```text
+machine_events_raw.csv.gz
+control_room_current_status.csv.gz
+control_room_machine_status.csv.gz
+control_room_alert_feed.csv.gz
+dashboard_realtime_summary.csv.gz
+manifest.json
+```
+
+The export is produced by:
+
+```text
+scripts/export_vm_postgres_to_gcs.sh
+scripts/install_vm_shutdown_export_service.sh
+```
+
+After downloading and importing the files, DBeaver can query the local PostgreSQL connection even when the VM is stopped.
+
+Useful local import queries:
 
 ```sql
 SELECT COUNT(*) AS local_rows_total, MAX(event_time) AS latest_event_time
@@ -237,14 +249,9 @@ Online/offline rule:
 
 ```text
 The VM can start, produce data, and stop without the Mac being online.
-Syncing VM PostgreSQL into local Mac PostgreSQL requires the Mac to be awake, online, and able to reach GCP during the sync.
-If the Mac is offline, the sync does not run on the Mac. The VM data remains on the VM persistent disk and can be synced later when the VM is running again.
-```
-
-Future option:
-
-```text
-If offline delivery must work even when the Mac is unavailable, export VM data to a small GCS bucket before VM shutdown, then let the Mac download/import it later. This adds a tiny storage surface but gives a real queue/staging layer.
+The VM export to GCS does not depend on the Mac.
+Manual download/import into local PostgreSQL happens later, whenever the Mac is online.
+Cloud Storage lifecycle deletes old export objects after 5 days.
 ```
 
 ## Grafana

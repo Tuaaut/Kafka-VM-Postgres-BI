@@ -43,6 +43,11 @@ fi
 echo "[$(date -Is)] Starting Docker Compose stack"
 docker compose up -d --build
 
+if [ -x scripts/install_vm_shutdown_export_service.sh ]; then
+  echo "[$(date -Is)] Installing shutdown GCS export service"
+  sudo PROJECT_DIR="$PROJECT_DIR" scripts/install_vm_shutdown_export_service.sh || echo "[$(date -Is)] Shutdown export service install failed; continuing"
+fi
+
 echo "[$(date -Is)] Current container status"
 docker compose ps
 

@@ -33,6 +33,7 @@ Validated locally:
 - VM PostgreSQL is reachable from DBeaver through `localhost:5433` using an SSH tunnel.
 - Compute Engine instance schedule starts the VM at 08:45 and stops it at 11:00 Asia/Bangkok.
 - VM startup script starts Docker Compose automatically after scheduled start.
+- VM pre-shutdown export service writes PostgreSQL snapshots to GCS before the scheduled stop.
 
 The current result is good for the demo because it proves the monitoring layer reacts to warning and critical conditions.
 

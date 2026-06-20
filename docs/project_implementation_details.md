@@ -81,6 +81,7 @@ Design quality goals:
 | Resilience | Kafka buffers events and decouples producer and consumer. |
 | Cost efficiency | One small VM can run the whole demo stack. |
 | Runtime control | Compute Engine instance schedule starts the VM for UAT and stops it afterward. |
+| Offline review | VM exports PostgreSQL snapshots to GCS before shutdown, so the Mac does not need to be online during the demo window. |
 | Flexibility | PostgreSQL views and Grafana panels can evolve without changing the event stream. |
 | Cross-checking | DBeaver and terminal SQL can validate Grafana dashboard values. |
 | Operational fit | Grafana is a natural fit for control-room monitoring and alerting. |

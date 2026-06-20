@@ -206,9 +206,10 @@ Avoid Cloud Run and GitHub Actions for VM orchestration unless future requiremen
 Phase 5:
 
 ```text
-Use local PostgreSQL mirror for offline review after VM shutdown
-Sync requires Mac to be online during the VM runtime window
-Consider GCS export only if a durable queue/staging layer is needed
+Use GCS PostgreSQL export for offline review after VM shutdown
+GCS export does not require the Mac to be online during the VM runtime window
+Keep export retention short with a 5-day Cloud Storage lifecycle rule
+Manual local PostgreSQL import can happen later when needed
 ```
 
 See `docs/gcp_vm_operations.md` for live resource checks and upgrade commands.
@@ -218,5 +219,6 @@ See `docs/gcp_vm_operations.md` for live resource checks and upgrade commands.
 - Google Compute Engine pricing page: https://cloud.google.com/products/compute/pricing
 - Google E2 machine family docs: https://cloud.google.com/compute/docs/general-purpose-machines
 - Google Persistent Disk pricing: https://cloud.google.com/compute/disks-image-pricing
+- Google Cloud Storage pricing: https://cloud.google.com/storage/pricing
 - Google VPC external IP pricing: https://cloud.google.com/vpc/network-pricing
 - GCP Pricing Calculator: https://cloud.google.com/products/calculator

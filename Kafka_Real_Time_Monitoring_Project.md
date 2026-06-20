@@ -63,6 +63,8 @@ Compute Engine instance schedule: kafka-demo-uat-hours
 Start: 08:45 Asia/Bangkok
 Stop: 11:00 Asia/Bangkok
 Startup script: scripts/gcp_vm_startup.sh
+Pre-shutdown GCS export: scripts/export_vm_postgres_to_gcs.sh
+GCS bucket: gs://kafka-postgres-bi-exports-retail-bigquery-project-webapp
 Purpose: UAT/demo runtime without 24/7 compute cost
 ```
 

@@ -233,7 +233,11 @@ Grafana Gmail contact point: kafka-gmail-email
 Grafana Gmail recipient: pattaratua@gmail.com
 Instance schedule: kafka-demo-uat-hours, start 08:45 and stop 11:00 Asia/Bangkok
 Startup script: scripts/gcp_vm_startup.sh, stored as VM metadata startup-script
-Local offline mirror script: scripts/sync_vm_postgres_to_local.sh
+GCS export bucket: gs://kafka-postgres-bi-exports-retail-bigquery-project-webapp
+GCS export path: kafka-postgres-bi/exports/YYYY-MM-DD/HHMMSS/
+GCS export scripts: scripts/export_vm_postgres_to_gcs.sh, scripts/install_vm_shutdown_export_service.sh
+GCS export service: kafka-monitoring-gcs-export.service
+GCS export retention: delete objects after 5 days
 ```
 
 ## External Alerting Resources
@@ -280,7 +284,8 @@ docs/gcp_vm_operations.md
 
 - Keep the VM stopped when not testing.
 - Use `kafka-demo-uat-hours` to run the VM only during the UAT/demo window.
-- Use the local PostgreSQL mirror script to query recent VM data after the VM stops.
+- Use the GCS PostgreSQL export to stage recent VM data after the VM stops.
+- Import GCS export files into local PostgreSQL manually only when offline analysis is needed.
 - Start on local Docker before paying for cloud runtime.
 - Use `e2-small` while it remains stable.
 - Upgrade to `e2-medium` only if resource checks show pressure.

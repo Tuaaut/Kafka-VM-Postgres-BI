@@ -146,17 +146,26 @@ Stop: 11:00 daily
 Purpose: UAT/demo runtime without 24/7 compute cost
 Startup script: scripts/gcp_vm_startup.sh
 Startup log: /var/log/kafka-monitoring-startup.log
+Shutdown/export service: kafka-monitoring-gcs-export.service
+Export script: scripts/export_vm_postgres_to_gcs.sh
 Verified startup containers: Kafka, PostgreSQL, Grafana, producer, consumer, LINE bridge
 ```
 
-Confirmed local mirror plan:
+Confirmed GCS export plan:
 
 ```text
 Local PostgreSQL CLI psql is installed through Homebrew libpq.
-Local Docker PostgreSQL remains the local mirror target on localhost:5432.
-scripts/sync_vm_postgres_to_local.sh incrementally copies VM machine_events_raw rows into local PostgreSQL.
-Sync requires the Mac to be awake and online while the VM is running.
-If the Mac is offline, VM data persists on the VM disk and can be synced later during another VM runtime window.
+Local Docker PostgreSQL remains the optional manual import target on localhost:5432.
+The VM exports PostgreSQL snapshots to Cloud Storage before shutdown.
+GCS bucket: gs://kafka-postgres-bi-exports-retail-bigquery-project-webapp
+Export path: kafka-postgres-bi/exports/YYYY-MM-DD/HHMMSS/
+Export files: machine_events_raw, control-room views, realtime summary, and manifest.
+Cloud Storage lifecycle deletes export objects after 5 days.
+The Mac does not need to be online during the VM export.
+Manual local import can happen later when the Mac is online.
+Verified manual export path: gs://kafka-postgres-bi-exports-retail-bigquery-project-webapp/kafka-postgres-bi/exports/2026-06-21/041342/
+Verified systemd shutdown-export path created additional GCS export folders.
+Verified real VM stop export path: gs://kafka-postgres-bi-exports-retail-bigquery-project-webapp/kafka-postgres-bi/exports/2026-06-21/042501/
 ```
 
 See `docs/gcp_vm_operations.md` for the tunnel, DBeaver, monitoring, stop/start, and upgrade commands.

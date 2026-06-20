@@ -275,9 +275,11 @@ Startup behavior:
 Compute Engine starts the VM at 08:45 Asia/Bangkok.
 The VM startup script runs automatically.
 The startup script starts the Docker Compose stack.
+The startup script installs/enables the pre-shutdown GCS export service.
 Producer emits 10 events every 60 seconds.
 Grafana reads PostgreSQL and evaluates alert rules.
 Critical alerts route to Gmail and LINE.
+Before shutdown, the VM exports PostgreSQL snapshots to GCS.
 Compute Engine stops the VM at 11:00 Asia/Bangkok.
 ```
 
@@ -285,6 +287,8 @@ Startup script:
 
 ```text
 scripts/gcp_vm_startup.sh
+scripts/install_vm_shutdown_export_service.sh
+scripts/export_vm_postgres_to_gcs.sh
 ```
 
 The same script is stored in VM metadata as `startup-script`. It writes logs to:
@@ -323,26 +327,53 @@ For future code changes, deploy the updated project files to the VM before relyi
 Do not overwrite the VM .env unless intentionally updating secrets.
 ```
 
-## Local Offline Mirror
+## Daily GCS PostgreSQL Export
 
-When the VM is stopped, VM PostgreSQL cannot be queried from DBeaver. To keep an offline copy on the Mac, run the local sync script while the VM is running:
+When the VM is stopped, VM PostgreSQL cannot be queried from DBeaver. To keep a reviewable copy without depending on the Mac, the VM exports PostgreSQL snapshots to Cloud Storage before shutdown.
 
-```bash
-scripts/sync_vm_postgres_to_local.sh
+Current bucket:
+
+```text
+gs://kafka-postgres-bi-exports-retail-bigquery-project-webapp
 ```
 
-The script copies new VM `machine_events_raw` rows into the local Docker PostgreSQL database on the Mac.
+Export path:
+
+```text
+kafka-postgres-bi/exports/YYYY-MM-DD/HHMMSS/
+```
+
+Current exported files:
+
+```text
+machine_events_raw.csv.gz
+control_room_current_status.csv.gz
+control_room_machine_status.csv.gz
+control_room_alert_feed.csv.gz
+dashboard_realtime_summary.csv.gz
+manifest.json
+```
+
+Retention:
+
+```text
+Cloud Storage lifecycle deletes export objects after 5 days.
+```
+
+Verified export:
+
+```text
+gs://kafka-postgres-bi-exports-retail-bigquery-project-webapp/kafka-postgres-bi/exports/2026-06-21/041342/
+Real VM shutdown export verified: gs://kafka-postgres-bi-exports-retail-bigquery-project-webapp/kafka-postgres-bi/exports/2026-06-21/042501/
+```
 
 Mac dependency:
 
 ```text
 VM schedule does not need the Mac.
-Local mirror sync does need the Mac awake and online.
-If the Mac is offline before the VM stops, the local import will not happen then.
-Data still remains on the VM persistent disk and can be synced during a later VM runtime window.
+GCS export does not need the Mac.
+Manual local PostgreSQL import can happen later when the Mac is online.
 ```
-
-For a true queue that survives both VM shutdown and Mac offline time, use a future GCS export stage.
 
 ## Manual Stop And Start
 

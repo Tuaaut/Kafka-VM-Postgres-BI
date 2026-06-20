@@ -89,6 +89,8 @@ Producer -> Kafka -> Consumer -> PostgreSQL -> Grafana
 
 The project also has a tested GCP VM deployment path. The VM uses a scheduled UAT/demo window instead of running 24/7.
 
+Before scheduled shutdown, the VM exports PostgreSQL snapshots to Cloud Storage so the data can be reviewed later even if the Mac was offline during the demo window.
+
 Gmail alerting is also configured and verified:
 
 ```text
@@ -136,6 +138,8 @@ Start: 08:45 Asia/Bangkok
 Stop: 11:00 Asia/Bangkok
 Resource policy: kafka-demo-uat-hours
 Startup script: scripts/gcp_vm_startup.sh
+Pre-shutdown export: scripts/export_vm_postgres_to_gcs.sh
+GCS bucket: gs://kafka-postgres-bi-exports-retail-bigquery-project-webapp
 ```
 
 When the VM starts, the startup script runs Docker Compose so Kafka, PostgreSQL, Grafana, producer, consumer, and the LINE alert bridge come online automatically.

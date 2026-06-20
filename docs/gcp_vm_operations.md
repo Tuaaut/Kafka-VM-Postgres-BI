@@ -15,6 +15,7 @@ Machine type: e2-small
 Disk: 30 GB standard persistent disk
 OS: Ubuntu 24.04 LTS
 External IP: EXTERNAL_IP_WHEN_RUNNING
+Reserved public IP: 136.110.54.120 (`kafka-grafana-public-ip`)
 Access model: SSH tunnel first
 Public Grafana base URL for alert emails: http://136.110.54.120:3000
 ```
@@ -30,7 +31,8 @@ GCP Compute Engine VM
     ├── PostgreSQL container
     ├── Grafana container
     ├── Producer container
-    └── Consumer container
+    ├── Consumer container
+    └── LINE alert bridge container
 ```
 
 Grafana does not read JSON files directly. The current serving path is:
@@ -102,7 +104,9 @@ Public dashboard currently documented for demo sharing:
 http://136.110.54.120:3000/d/kafka-machine-monitoring/kafka-machine-monitoring-control-room
 ```
 
-If the VM external IP changes, update `GRAFANA_ROOT_URL` and recreate Grafana so future email links stay correct:
+The current public IP is reserved as `kafka-grafana-public-ip`, so scheduled stop/start should keep the same Grafana alert-link base URL.
+
+If the VM external IP ever changes, update `GRAFANA_ROOT_URL` and recreate Grafana so future email links stay correct:
 
 ```bash
 perl -0pi -e 's#^GRAFANA_ROOT_URL=.*#GRAFANA_ROOT_URL=http://NEW_VM_EXTERNAL_IP:3000#m' .env
@@ -236,6 +240,90 @@ gcloud compute instances start kafka-postgres-bi-sg \
 This keeps the disk and project files. The external ephemeral IP can change after stop/start, but SSH tunnels through `gcloud compute ssh` still work by VM name.
 
 ## Stop And Start For Cost Control
+
+## Scheduled UAT Runtime
+
+The VM uses a Compute Engine instance schedule so it does not need to run 24/7.
+
+Current schedule:
+
+```text
+Resource policy: kafka-demo-uat-hours
+Region: asia-southeast1
+Timezone: Asia/Bangkok
+Start: 08:45 every day
+Stop: 11:00 every day
+Purpose: UAT/demo window around 09:00 while limiting compute cost
+```
+
+GCP schedule commands:
+
+```bash
+gcloud compute resource-policies describe kafka-demo-uat-hours \
+  --project retail-bigquery-project-webapp \
+  --region asia-southeast1
+
+gcloud compute instances describe kafka-postgres-bi-sg \
+  --project retail-bigquery-project-webapp \
+  --zone asia-southeast1-a \
+  --format='value(status,resourcePolicies)'
+```
+
+Startup behavior:
+
+```text
+Compute Engine starts the VM at 08:45 Asia/Bangkok.
+The VM startup script runs automatically.
+The startup script starts the Docker Compose stack.
+Producer emits 10 events every 60 seconds.
+Grafana reads PostgreSQL and evaluates alert rules.
+Critical alerts route to Gmail and LINE.
+Compute Engine stops the VM at 11:00 Asia/Bangkok.
+```
+
+Startup script:
+
+```text
+scripts/gcp_vm_startup.sh
+```
+
+The same script is stored in VM metadata as `startup-script`. It writes logs to:
+
+```text
+/var/log/kafka-monitoring-startup.log
+```
+
+Manual startup-script test:
+
+```bash
+gcloud compute ssh kafka-postgres-bi-sg \
+  --project retail-bigquery-project-webapp \
+  --zone asia-southeast1-a \
+  --command 'curl -fsS -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/instance/attributes/startup-script | sudo bash'
+```
+
+Current verified startup result:
+
+```text
+kafka_vm_kafka: running
+kafka_vm_postgres: running
+kafka_vm_grafana: running and healthy
+kafka_vm_producer: running
+kafka_vm_consumer: running
+kafka_vm_line_alert_bridge: running and healthy
+Grafana notification policy: Gmail for project alerts, LINE for critical project alerts
+Latest PostgreSQL event time updated after startup
+```
+
+Important deployment note:
+
+```text
+The VM project folder is not currently a Git checkout.
+For future code changes, deploy the updated project files to the VM before relying on the startup script.
+Do not overwrite the VM .env unless intentionally updating secrets.
+```
+
+## Manual Stop And Start
 
 Stop when not testing:
 

@@ -215,6 +215,7 @@ VM machine type: e2-small
 VM OS: Ubuntu 24.04 LTS
 Disk size: 30 GB standard persistent disk
 External IP: EXTERNAL_IP_WHEN_RUNNING
+Reserved public IP: 136.110.54.120 (`kafka-grafana-public-ip`)
 Firewall rule: SSH only for testing; Grafana and PostgreSQL use SSH tunnels
 Kafka image: apache/kafka:3.7.0
 Kafka mode: single-node KRaft, no Zookeeper
@@ -230,6 +231,8 @@ Grafana dashboard: Kafka Monitoring / Kafka Machine Monitoring Control Room
 Grafana dashboard file: grafana/dashboards/kafka_control_room.json
 Grafana Gmail contact point: kafka-gmail-email
 Grafana Gmail recipient: pattaratua@gmail.com
+Instance schedule: kafka-demo-uat-hours, start 08:45 and stop 11:00 Asia/Bangkok
+Startup script: scripts/gcp_vm_startup.sh, stored as VM metadata startup-script
 ```
 
 ## External Alerting Resources
@@ -275,6 +278,7 @@ docs/gcp_vm_operations.md
 ## Cost Controls
 
 - Keep the VM stopped when not testing.
+- Use `kafka-demo-uat-hours` to run the VM only during the UAT/demo window.
 - Start on local Docker before paying for cloud runtime.
 - Use `e2-small` while it remains stable.
 - Upgrade to `e2-medium` only if resource checks show pressure.

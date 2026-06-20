@@ -14,6 +14,7 @@ Grafana can be reached through localhost:3001 SSH tunnel for private testing.
 Alert email dashboard links use public VM base URL http://136.110.54.120:3000.
 PostgreSQL is reached through localhost:5433 SSH tunnel for DBeaver.
 Gmail SMTP is configured and verified locally.
+Compute Engine instance schedule starts/stops the VM for UAT.
 ```
 
 Decision:
@@ -104,7 +105,7 @@ Disk: 30 GB
 | `e2-small` compute | lower than e2-medium | Current verified demo size. |
 | `e2-medium` compute | roughly about 2x e2-small | Upgrade only if needed. |
 | 30 GB standard persistent disk | small monthly cost | Disk remains billed when VM is stopped. |
-| External IPv4 | a few dollars/month if used | Avoid static IP until needed. |
+| Reserved external IPv4 | a few dollars/month depending on GCP pricing | Current public Grafana IP is reserved as `kafka-grafana-public-ip`. |
 | Network egress | likely near zero for demo | Grafana traffic is small. |
 
 Practical always-on expectation:
@@ -126,10 +127,11 @@ Disk still remains billed while the VM is stopped.
 
 Use these rules:
 
-- Stop the VM when not testing.
+- Use the Compute Engine instance schedule instead of leaving the VM on 24/7.
+- Keep the VM stopped when outside the UAT/demo window.
 - Keep the disk small at first: 20-30 GB.
 - Use standard persistent disk first unless boot performance feels poor.
-- Avoid reserving a static external IP until sharing is required.
+- Keep the reserved static external IP because alert emails and public dashboard links depend on stable `http://136.110.54.120:3000`.
 - Use SSH tunnel for Grafana first:
 
 ```bash
@@ -146,7 +148,15 @@ gcloud compute ssh kafka-postgres-bi-sg --project YOUR_GCP_PROJECT_ID --zone asi
 ```
 
 - Keep GCP budget alert enabled.
-- Add a manual shutdown habit after every test session:
+- Use the current scheduled runtime:
+
+```text
+Start: 08:45 Asia/Bangkok
+Stop: 11:00 Asia/Bangkok
+Resource policy: kafka-demo-uat-hours
+```
+
+- Keep a manual shutdown habit after any extra test session:
 
 ```bash
 gcloud compute instances stop VM_NAME --zone ZONE
@@ -183,6 +193,14 @@ Phase 3:
 ```text
 Monitor e2-small stability
 Upgrade to e2-medium only if dashboard, Kafka, PostgreSQL, or alerting becomes unreliable
+```
+
+Phase 4:
+
+```text
+Use Compute Engine instance schedule for UAT/demo windows
+Startup script runs Docker Compose automatically after VM start
+Avoid Cloud Run and GitHub Actions for VM orchestration unless future requirements change
 ```
 
 See `docs/gcp_vm_operations.md` for live resource checks and upgrade commands.

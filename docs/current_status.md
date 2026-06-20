@@ -119,6 +119,7 @@ VM name: kafka-postgres-bi-sg
 Machine type: e2-small
 Disk: 30 GB standard persistent disk
 External IP: EXTERNAL_IP_WHEN_RUNNING
+Reserved public IP: 136.110.54.120
 Access model: SSH tunnel first
 ```
 
@@ -133,6 +134,19 @@ PostgreSQL opens from DBeaver through localhost:5433.
 Rows are increasing in PostgreSQL.
 control_room_current_status returns live values.
 The old US Central VM was deleted after Singapore was verified.
+```
+
+Confirmed VM scheduling:
+
+```text
+Resource policy: kafka-demo-uat-hours
+Timezone: Asia/Bangkok
+Start: 08:45 daily
+Stop: 11:00 daily
+Purpose: UAT/demo runtime without 24/7 compute cost
+Startup script: scripts/gcp_vm_startup.sh
+Startup log: /var/log/kafka-monitoring-startup.log
+Verified startup containers: Kafka, PostgreSQL, Grafana, producer, consumer, LINE bridge
 ```
 
 See `docs/gcp_vm_operations.md` for the tunnel, DBeaver, monitoring, stop/start, and upgrade commands.
@@ -369,6 +383,7 @@ gcloud compute ssh kafka-postgres-bi-sg --project YOUR_GCP_PROJECT_ID --zone asi
 - Start locally first, then run the same stack on the GCP VM.
 - Use Singapore `e2-small` as the current low-cost demo VM.
 - Upgrade to `e2-medium` only if Grafana, Kafka, PostgreSQL, or alerting becomes unstable.
+- Use Compute Engine instance schedule for UAT/demo windows instead of 24/7 runtime.
 - Gmail SMTP is configured locally and verified. Keep SMTP secrets only in `.env` or a VM-only secret pattern.
 - Alert email dashboard links should use `GRAFANA_ROOT_URL=http://136.110.54.120:3000` for the operations-team/public VM dashboard experience.
 

@@ -474,6 +474,54 @@ Gmail = official searchable alert history.
 LINE = fast mobile response for critical incidents.
 ```
 
+## Future Cloud Run Bridge Option
+
+Cloud Run is not required for the current implementation.
+
+Current cost-saving implementation:
+
+```text
+Grafana
+→ LINE alert bridge container in the same Docker Compose stack
+→ LINE Messaging API
+→ LINE Official Account broadcast
+```
+
+Reason for the current choice:
+
+```text
+No extra Cloud Run service.
+No extra Cloud Run runtime or request cost.
+Fewer moving parts for the demo.
+Still demonstrates Grafana webhook integration, custom alert formatting, and LINE Messaging API delivery.
+```
+
+Cloud Run remains a future professionalization option.
+
+Future Cloud Run architecture:
+
+```text
+Grafana webhook
+→ Cloud Run alert bridge
+→ LINE Messaging API / future chat or incident channels
+```
+
+Why it may be useful later:
+
+- Public webhook endpoint for services that cannot reach the private VM/container network.
+- Cleaner separation between monitoring, alert formatting, and delivery.
+- Central place for retry logic, deduplication, routing, and rate limiting.
+- Easier audit logging for alert payloads and delivery results.
+- Better pattern for multi-channel incident integrations such as LINE, Teams, Slack, PagerDuty, Jira, or ServiceNow.
+- Useful portfolio upgrade because it shows serverless integration engineering on GCP.
+
+When to consider it:
+
+```text
+Use the in-stack bridge while the project is small and cost-sensitive.
+Consider Cloud Run if the project needs public webhook access, groupId capture, multiple alert targets, delivery audit logs, or a more production-style integration story.
+```
+
 ## LINE Official Account Alerting
 
 LINE alerting is now prepared and the first direct LINE Messaging API test has passed.
@@ -635,4 +683,4 @@ Other possible future integrations:
 - Microsoft Teams Workflows if a suitable Microsoft 365 work/school account is available.
 - Slack webhook if the project needs a more global enterprise chat example.
 - PagerDuty, Jira, ServiceNow, or another incident workflow for a more production-like incident-management layer.
-- Cloud Run alert bridge if direct webhook payloads need formatting, routing, retries, or audit logging.
+- Cloud Run alert bridge if the project needs public webhook access, stronger separation, retries, routing, or audit logging.

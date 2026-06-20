@@ -355,7 +355,10 @@ Option 1: Run bridge on the same GCP VM.
 Lowest moving parts
 No separate Cloud Run service
 Good for this small demo
+Lowest extra cost
 ```
+
+This is the current implementation path. The LINE bridge runs as part of the same Docker Compose stack as Grafana, Kafka, and PostgreSQL.
 
 Option 2: Run bridge on Cloud Run.
 
@@ -365,6 +368,16 @@ Better separation from Grafana VM
 Useful for portfolio integration story
 Small extra cost risk if alert volume is high
 ```
+
+Cloud Run is not required for the current Gmail + LINE broadcast alerting setup. It is a future upgrade path if the project needs:
+
+- A public webhook endpoint.
+- Cleaner service separation.
+- Retry logic.
+- Deduplication or rate limiting.
+- Delivery audit logging.
+- Multiple downstream channels such as LINE, Teams, Slack, PagerDuty, Jira, or ServiceNow.
+- A more professional GCP serverless integration story for the portfolio.
 
 Option 3: Keep local/manual test only.
 
@@ -378,6 +391,7 @@ Recommended next step for this project:
 ```text
 Use broadcast mode for MVP.
 Move to group push mode later if the project needs a real team chat demonstration.
+Consider Cloud Run later only if public webhook access, audit logging, retries, or multi-channel routing become important.
 ```
 
 ## Security Checklist

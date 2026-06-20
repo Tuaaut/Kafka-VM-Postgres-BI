@@ -149,6 +149,16 @@ Startup log: /var/log/kafka-monitoring-startup.log
 Verified startup containers: Kafka, PostgreSQL, Grafana, producer, consumer, LINE bridge
 ```
 
+Confirmed local mirror plan:
+
+```text
+Local PostgreSQL CLI psql is installed through Homebrew libpq.
+Local Docker PostgreSQL remains the local mirror target on localhost:5432.
+scripts/sync_vm_postgres_to_local.sh incrementally copies VM machine_events_raw rows into local PostgreSQL.
+Sync requires the Mac to be awake and online while the VM is running.
+If the Mac is offline, VM data persists on the VM disk and can be synced later during another VM runtime window.
+```
+
 See `docs/gcp_vm_operations.md` for the tunnel, DBeaver, monitoring, stop/start, and upgrade commands.
 
 ## Confirmed Gmail Alerting Result

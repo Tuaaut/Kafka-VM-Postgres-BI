@@ -323,6 +323,27 @@ For future code changes, deploy the updated project files to the VM before relyi
 Do not overwrite the VM .env unless intentionally updating secrets.
 ```
 
+## Local Offline Mirror
+
+When the VM is stopped, VM PostgreSQL cannot be queried from DBeaver. To keep an offline copy on the Mac, run the local sync script while the VM is running:
+
+```bash
+scripts/sync_vm_postgres_to_local.sh
+```
+
+The script copies new VM `machine_events_raw` rows into the local Docker PostgreSQL database on the Mac.
+
+Mac dependency:
+
+```text
+VM schedule does not need the Mac.
+Local mirror sync does need the Mac awake and online.
+If the Mac is offline before the VM stops, the local import will not happen then.
+Data still remains on the VM persistent disk and can be synced during a later VM runtime window.
+```
+
+For a true queue that survives both VM shutdown and Mac offline time, use a future GCS export stage.
+
 ## Manual Stop And Start
 
 Stop when not testing:

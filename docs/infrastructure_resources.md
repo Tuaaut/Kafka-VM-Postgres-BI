@@ -233,6 +233,7 @@ Grafana Gmail contact point: kafka-gmail-email
 Grafana Gmail recipient: pattaratua@gmail.com
 Instance schedule: kafka-demo-uat-hours, start 08:45 and stop 11:00 Asia/Bangkok
 Startup script: scripts/gcp_vm_startup.sh, stored as VM metadata startup-script
+Local offline mirror script: scripts/sync_vm_postgres_to_local.sh
 ```
 
 ## External Alerting Resources
@@ -279,6 +280,7 @@ docs/gcp_vm_operations.md
 
 - Keep the VM stopped when not testing.
 - Use `kafka-demo-uat-hours` to run the VM only during the UAT/demo window.
+- Use the local PostgreSQL mirror script to query recent VM data after the VM stops.
 - Start on local Docker before paying for cloud runtime.
 - Use `e2-small` while it remains stable.
 - Upgrade to `e2-medium` only if resource checks show pressure.

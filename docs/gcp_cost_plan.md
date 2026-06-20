@@ -203,6 +203,14 @@ Startup script runs Docker Compose automatically after VM start
 Avoid Cloud Run and GitHub Actions for VM orchestration unless future requirements change
 ```
 
+Phase 5:
+
+```text
+Use local PostgreSQL mirror for offline review after VM shutdown
+Sync requires Mac to be online during the VM runtime window
+Consider GCS export only if a durable queue/staging layer is needed
+```
+
 See `docs/gcp_vm_operations.md` for live resource checks and upgrade commands.
 
 ## Sources To Recheck

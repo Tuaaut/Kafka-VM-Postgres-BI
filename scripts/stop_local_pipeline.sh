@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# On Windows use scripts/Stop-LocalPipeline.ps1 instead (POSIX PID semantics).
 set -euo pipefail
 
 RUNTIME_DIR=".runtime"

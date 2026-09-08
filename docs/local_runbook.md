@@ -68,13 +68,28 @@ PostgreSQL runs in Docker. You do not need to install PostgreSQL directly on the
 
 From the project folder:
 
+```powershell
+# Windows PowerShell
+cd Kafka-VM-Postgres-BI
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+Copy-Item .env.example .env
+```
+
 ```bash
+# macOS / Linux / WSL
 cd Kafka-VM-Postgres-BI
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env
 ```
+
+`.env.example` sets `POSTGRES_PORT=5433` because `docker-compose.override.yml`
+publishes Postgres on 5433 locally to avoid clashing with another project on
+5432. Leaving it at 5432 makes the consumer hang on connect rather than fail
+fast, so it looks alive while writing nothing.
 
 ## Start Services
 
@@ -136,9 +151,40 @@ scripts/query_postgres.sh "SELECT COUNT(*) FILTER (WHERE event_time >= NOW() - I
 
 Manual fallback scripts still exist for local debugging, but the normal project flow should use Docker Compose:
 
+```powershell
+# Windows PowerShell
+.\scripts\Start-Consumer.ps1
+.\scripts\Start-Producer.ps1
+```
+
 ```bash
+# macOS / Linux / WSL
 scripts/run_consumer.sh
 scripts/run_producer_60s.sh
+```
+
+### Running the pipeline in the background
+
+The shell scripts track background processes with `nohup` and PID files, which
+does not work from Windows: Git Bash hands out MSYS PIDs that Windows process
+tools cannot see. Use the PowerShell equivalents on Windows.
+
+| Task | Windows | macOS / Linux / WSL |
+| --- | --- | --- |
+| Start producer + consumer | `.\scripts\Start-LocalPipeline.ps1` | `scripts/start_local_pipeline.sh` |
+| Check what is running | `.\scripts\Get-PipelineStatus.ps1` | `scripts/pipeline_status.sh` |
+| Stop both | `.\scripts\Stop-LocalPipeline.ps1` | `scripts/stop_local_pipeline.sh` |
+| Consumer in foreground | `.\scripts\Start-Consumer.ps1` | `scripts/run_consumer.sh` |
+| Producer in foreground | `.\scripts\Start-Producer.ps1` | `scripts/run_producer_60s.sh` |
+| LINE bridge locally | `.\scripts\Start-LineBridge.ps1` | `scripts/run_line_bridge_local.sh` |
+| Send a test LINE alert | `.\scripts\Test-LineAlert.ps1` | `scripts/test_line_alert.sh` |
+
+Both sides write logs to `logs/` and PID files to `.runtime/`, so status and
+stop work regardless of which one started the processes on that platform. The
+producer rate can be overridden either way:
+
+```powershell
+.\scripts\Start-LocalPipeline.ps1 -EventIntervalSeconds 5 -EventsPerBatch 5
 ```
 
 ## Fast Local Test

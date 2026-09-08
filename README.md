@@ -198,6 +198,22 @@ docker compose ps
 
 Open local Grafana at `http://localhost:3000` (`admin` / `admin`).
 
+To run the producer and consumer outside Docker, use the PowerShell scripts in
+`scripts/` on Windows — the shell equivalents rely on `.venv/bin/python`,
+`nohup` and POSIX PID semantics, none of which work here:
+
+```powershell
+.\scripts\Start-LocalPipeline.ps1     # producer + consumer in the background
+.\scripts\Get-PipelineStatus.ps1
+.\scripts\Stop-LocalPipeline.ps1
+```
+
+See the [local runbook](docs/local_runbook.md#running-the-pipeline-in-the-background)
+for the full Windows/bash script mapping. Set `POSTGRES_PORT=5433` in `.env`
+(the default in `.env.example`) to match the override above; with 5432 the
+consumer hangs on connect instead of failing, so it appears to run while
+writing nothing.
+
 Stop when done (keeps data):
 
 ```powershell

@@ -1,0 +1,14 @@
+.DS_Store
+__pycache__/
+*.pyc
+.env
+.venv/
+venv/
+data/raw/**/*.json
+.runtime/
+logs/
+.playwright-cli/
+
+# JVM crash dumps (e.g. from a desktop DB client)
+hs_err_pid*.log
+replay_pid*.log

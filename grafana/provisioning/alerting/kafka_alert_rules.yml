@@ -1,0 +1,186 @@
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: kafka_control_room
+    folder: Kafka Monitoring
+    interval: 30s
+    rules:
+      - uid: kafka_plant_state_critical
+        title: Plant State Critical
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: machine_monitoring_postgres
+            relativeTimeRange:
+              from: 600
+              to: 0
+            model:
+              datasource:
+                type: postgres
+                uid: machine_monitoring_postgres
+              editorMode: code
+              format: table
+              rawQuery: true
+              rawSql: |
+                WITH metrics AS (
+                  SELECT
+                    COUNT(*) AS total_events,
+                    COUNT(*) FILTER (WHERE print_result = 'FAILED' OR status IN ('FAILED', 'FAULTED')) AS failed_events,
+                    COUNT(*) FILTER (WHERE status = 'FAULTED' OR severity IN ('HIGH', 'MEDIUM')) AS warning_events,
+                    ROUND(COUNT(*) FILTER (WHERE print_result = 'FAILED' OR status IN ('FAILED', 'FAULTED'))::NUMERIC / NULLIF(COUNT(*), 0) * 100, 2) AS failure_rate_pct,
+                    ROUND(AVG(COALESCE(printhead_temp_c, temperature)), 2) AS avg_temperature,
+                    ROUND(EXTRACT(EPOCH FROM (MAX(ingest_time) - MAX(event_time)))::NUMERIC, 2) AS latest_lag_seconds
+                  FROM machine_events_raw
+                  WHERE event_time >= NOW() - INTERVAL '15 minutes'
+                )
+                SELECT
+                  CASE
+                    WHEN total_events = 0 THEN 0
+                    WHEN failure_rate_pct >= 10
+                      OR warning_events >= 10
+                      OR avg_temperature >= 85
+                      OR latest_lag_seconds >= 300 THEN 1
+                    ELSE 0
+                  END AS value
+                FROM metrics;
+              refId: A
+          - refId: B
+            datasourceUid: __expr__
+            relativeTimeRange:
+              from: 600
+              to: 0
+            model:
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              reducer: last
+              refId: B
+              type: reduce
+          - refId: C
+            datasourceUid: __expr__
+            relativeTimeRange:
+              from: 600
+              to: 0
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 0
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - C
+                  reducer:
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: B
+              refId: C
+              type: threshold
+        dashboardUid: kafka-machine-monitoring
+        panelId: 1
+        noDataState: OK
+        execErrState: Error
+        for: 60s
+        annotations:
+          summary: Plant state is critical.
+          description: The 15-minute control-room window crossed a critical threshold.
+          impact: Production monitoring has detected a critical condition in the recent machine event window.
+          action_plan: |
+            1. Open the Grafana control-room dashboard and confirm the Plant State panel.
+            2. Check the latest alert feed to identify the affected production line, machine, and reason.
+            3. Notify the responsible technician or production support owner to inspect the line and take action as soon as possible.
+            4. Keep the incident open until the dashboard returns to NORMAL or the root cause is confirmed.
+          resolution_note: Plant state is no longer critical in the current monitoring window.
+        labels:
+          project: kafka_vm_postgres_bi
+          severity: critical
+
+      - uid: kafka_ingest_lag_high
+        title: Ingest Lag Above 300s
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: machine_monitoring_postgres
+            relativeTimeRange:
+              from: 600
+              to: 0
+            model:
+              datasource:
+                type: postgres
+                uid: machine_monitoring_postgres
+              editorMode: code
+              format: table
+              rawQuery: true
+              rawSql: |
+                SELECT
+                  COALESCE(
+                    ROUND(EXTRACT(EPOCH FROM (MAX(ingest_time) - MAX(event_time)))::NUMERIC, 2),
+                    0
+                  ) AS value
+                FROM machine_events_raw
+                WHERE event_time >= NOW() - INTERVAL '15 minutes';
+              refId: A
+          - refId: B
+            datasourceUid: __expr__
+            relativeTimeRange:
+              from: 600
+              to: 0
+            model:
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              reducer: last
+              refId: B
+              type: reduce
+          - refId: C
+            datasourceUid: __expr__
+            relativeTimeRange:
+              from: 600
+              to: 0
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 300
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - C
+                  reducer:
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: B
+              refId: C
+              type: threshold
+        dashboardUid: kafka-machine-monitoring
+        panelId: 4
+        noDataState: OK
+        execErrState: Error
+        for: 60s
+        annotations:
+          summary: Kafka/PostgreSQL ingest lag is high.
+          description: Latest ingest lag is above 300 seconds.
+          impact: The dashboard may be showing delayed production status because recent events are not reaching PostgreSQL quickly enough.
+          action_plan: |
+            1. Check whether the Kafka broker, producer, consumer, and PostgreSQL containers are running.
+            2. Inspect consumer logs for errors or slow inserts.
+            3. Confirm PostgreSQL is reachable and not under resource pressure.
+            4. If running on the VM, check memory, CPU, disk, and Docker container status.
+            5. Treat dashboard numbers as stale until ingest lag returns below the threshold.
+          resolution_note: Ingest lag has returned below the configured threshold.
+        labels:
+          project: kafka_vm_postgres_bi
+          severity: warning

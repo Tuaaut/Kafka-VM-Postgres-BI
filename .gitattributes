@@ -1,0 +1,14 @@
+# Keep LF in the repo and in the working tree on every OS.
+# These files are bind-mounted into Linux containers (local Docker and the GCP VM),
+# so CRLF would break shell scripts and SQL/YAML init files.
+* text=auto eol=lf
+
+*.sh   text eol=lf
+*.sql  text eol=lf
+*.yml  text eol=lf
+*.yaml text eol=lf
+*.py   text eol=lf
+*.json text eol=lf
+*.md   text eol=lf
+
+*.png  binary

@@ -1,0 +1,13 @@
+# Local development overrides (Windows workstation).
+# Auto-merged by `docker compose`; keeps docker-compose.yml identical to the VM.
+#   - No alerting locally: line-alert-bridge is excluded from the default `up`.
+#   - Postgres host port moved to 5433 to avoid a clash with another local
+#     project on 5432. Grafana still reaches Postgres in-network on postgres:5432,
+#     and `docker exec ... psql` is unaffected.
+services:
+  postgres:
+    ports: !override
+      - "5433:5432"
+
+  line-alert-bridge:
+    profiles: ["alerting"]

@@ -153,12 +153,26 @@ Local Grafana: `http://localhost:3000` (`admin` / `admin`). Local runs no alerti
 
 Create the Python environment:
 
+```powershell
+# Windows PowerShell
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+Copy-Item .env.example .env
+```
+
 ```bash
+# macOS / Linux / WSL
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env
 ```
+
+On Windows, run the pipeline through the PowerShell scripts
+(`Start-LocalPipeline.ps1`, `Get-PipelineStatus.ps1`, `Stop-LocalPipeline.ps1`)
+rather than the `.sh` ones — see the
+[local runbook](local_runbook.md#running-the-pipeline-in-the-background).
 
 Start Kafka, PostgreSQL, Grafana, producer, and consumer:
 

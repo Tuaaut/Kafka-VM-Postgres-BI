@@ -295,7 +295,16 @@ For the local and GCP demo, stay at 10 events/minute unless load testing.
 
 Environment:
 
+```powershell
+# Windows PowerShell
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+Copy-Item .env.example .env
+```
+
 ```bash
+# macOS / Linux / WSL
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
@@ -311,14 +320,26 @@ scripts/create_topics.sh
 
 Manual consumer fallback:
 
+```powershell
+# Windows PowerShell
+.\scripts\Start-Consumer.ps1
+```
+
 ```bash
+# macOS / Linux / WSL
 source .venv/bin/activate
 scripts/run_consumer.sh
 ```
 
 Manual producer fallback:
 
+```powershell
+# Windows PowerShell
+.\scripts\Start-Producer.ps1
+```
+
 ```bash
+# macOS / Linux / WSL
 source .venv/bin/activate
 scripts/run_producer_60s.sh
 ```

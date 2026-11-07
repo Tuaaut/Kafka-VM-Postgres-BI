@@ -12,11 +12,11 @@ The local Docker stack is a development and testing sandbox: iterate on SQL view
 
 Two intentional differences from the cloud VM:
 
-- **Alerting is disabled locally.** Grafana SMTP is off (`GRAFANA_SMTP_ENABLED=false`) and `line-alert-bridge` is not started, so no email or LINE message is sent from local. Alert rules are still provisioned and evaluate, so `Firing`/`Normal` state is visible under Alerting in Grafana; only delivery is inert.
+- **Alert delivery is disabled locally.** Grafana SMTP is off (`GRAFANA_SMTP_ENABLED=false`), and LINE is decommissioned. Alert rules still evaluate so `Firing`/`Normal` state is visible under Alerting in Grafana.
 - **PostgreSQL is published on host port `5433`**, not `5432` (see the override file below).
 - **No schedule locally.** Start and stop the stack on demand with `docker compose up -d` / `docker compose stop`. The Saturday 08:45-11:00 Asia/Bangkok window is a cloud cost-control measure (a GCP instance schedule); it does not apply to local Docker, which is free to run.
 
-Once running, the producer emits 10 events every 60 seconds with no further action, so data flows into Grafana on its own. The cloud VM is the only environment that delivers alerts. Development flow: edit locally -> test in Docker -> commit -> copy changed files to the VM.
+Once running, the producer emits 10 events every 60 seconds with no further action, so data flows into Grafana on its own. The cloud VM is the only environment configured to deliver Gmail alerts. Development flow: edit locally -> test in Docker -> commit -> copy changed files to the VM.
 
 ## Local Overrides: docker-compose.override.yml
 
@@ -27,14 +27,6 @@ services:
   postgres:
     ports: !override
       - "5433:5432"        # 5432 is used by another local project
-  line-alert-bridge:
-    profiles: ["alerting"] # excluded from the default `docker compose up`
-```
-
-To run the LINE bridge locally anyway (not normally needed):
-
-```powershell
-docker compose --profile alerting up -d
 ```
 
 ## Run From PowerShell (no WSL)
@@ -176,8 +168,6 @@ tools cannot see. Use the PowerShell equivalents on Windows.
 | Stop both | `.\scripts\Stop-LocalPipeline.ps1` | `scripts/stop_local_pipeline.sh` |
 | Consumer in foreground | `.\scripts\Start-Consumer.ps1` | `scripts/run_consumer.sh` |
 | Producer in foreground | `.\scripts\Start-Producer.ps1` | `scripts/run_producer_60s.sh` |
-| LINE bridge locally | `.\scripts\Start-LineBridge.ps1` | `scripts/run_line_bridge_local.sh` |
-| Send a test LINE alert | `.\scripts\Test-LineAlert.ps1` | `scripts/test_line_alert.sh` |
 
 Both sides write logs to `logs/` and PID files to `.runtime/`, so status and
 stop work regardless of which one started the processes on that platform. The
@@ -419,76 +409,9 @@ If `.env` is missing or SMTP is disabled, the contact point falls back to placeh
 
 ## LINE Alerting
 
-LINE is prepared as the fast mobile response channel.
+LINE notification delivery is decommissioned as of 2026-11-08. Do not use the former setup, bridge, or test commands. Gmail is the only active notification channel; local alert delivery remains disabled.
 
-Dedicated setup document:
-
-```text
-docs/line_official_account_alerting.md
-```
-
-Current local mode:
-
-```text
-LINE_SEND_MODE=broadcast
-LINE_MIN_SEVERITY=critical
-LINE_DISABLE_RESOLVED=true
-Grafana critical route: enabled
-```
-
-Run a direct LINE alert test:
-
-```bash
-scripts/test_line_alert.sh
-```
-
-Expected success:
-
-```json
-{
-  "sent": true,
-  "status": 200,
-  "response": "{}"
-}
-```
-
-Known verified route:
-
-```text
-Grafana Plant State Critical -> kafka-line-webhook -> LINE bridge /grafana -> HTTP 200
-```
-
-Run the bridge locally:
-
-```bash
-scripts/run_line_bridge_local.sh
-```
-
-Health check:
-
-```bash
-curl http://localhost:8080/health
-```
-
-Docker Compose bridge option:
-
-```bash
-docker compose up -d line-alert-bridge
-```
-
-Security rule:
-
-```text
-LINE_CHANNEL_ACCESS_TOKEN belongs only in local .env or a production secret store.
-Do not write LINE tokens into docs or Git.
-```
-
-Current limitation:
-
-```text
-True group-chat push needs a captured groupId and LINE_SEND_MODE=push.
-```
-
+See [current project status](current_status.md#line-alert-channel-decommission--2026-11-08).
 ## Reset Data
 
 Clear event rows but keep the schema:

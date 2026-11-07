@@ -89,8 +89,7 @@ The same architecture can later be extended to send Kafka events into BigQuery, 
 - Python producer and consumer services
 - PostgreSQL for operational storage and SQL monitoring views
 - Grafana for the real-time dashboard and alert rules
-- Gmail SMTP for searchable operational alert history
-- LINE Messaging API for fast mobile alert notification
+- Gmail SMTP for operational alert delivery and searchable history
 - Docker Compose for local orchestration
 - GCP Compute Engine for optional cloud demo deployment
 
@@ -114,13 +113,12 @@ Grafana alert rule -> Gmail email contact point -> pattaratua@gmail.com
 
 The current email alert format includes status, severity, impact, action plan, dashboard link, and resolution note. Gmail is used as the official searchable alert record.
 
-LINE alerting is prepared and the first real LINE Messaging API test passed:
+LINE alerting was decommissioned on 2026-11-08. Gmail remains the active alert channel; LINE contact-point provisioning and the Compose bridge are disabled.
 
 ```text
-Kafka Alert Bot -> LINE Messaging API broadcast -> LINE Official Account friends
+Grafana alert rule -> Gmail email contact point -> pattaratua@gmail.com
 ```
 
-LINE is the fast mobile response channel. Gmail remains the official alert-history channel.
 
 ## Grafana Access
 
@@ -158,7 +156,7 @@ Pre-shutdown export: scripts/export_vm_postgres_to_gcs.sh
 GCS bucket: gs://kafka-postgres-bi-exports-retail-bigquery-project-webapp
 ```
 
-When the VM starts, the startup script runs Docker Compose so Kafka, PostgreSQL, Grafana, producer, consumer, and the LINE alert bridge come online automatically.
+When the VM starts, the startup script runs Docker Compose so Kafka, PostgreSQL, Grafana, producer, and consumer come online automatically. LINE delivery is disabled in the project configuration and in the GCP startup script.
 
 Default local admin login:
 
@@ -186,7 +184,7 @@ The local Docker stack is the sandbox for iterating on SQL views, the Grafana da
 
 Two intentional differences from the cloud VM:
 
-- **No alerting.** Grafana SMTP is disabled and the LINE bridge is not started, so no email or LINE message is ever sent from local. Alert rules still evaluate, so `Firing`/`Normal` state is visible in the Grafana UI; only delivery is inert.
+- **No alert delivery locally.** Grafana SMTP is disabled and LINE is decommissioned. Alert rules still evaluate, so `Firing`/`Normal` state is visible in the Grafana UI.
 - **PostgreSQL host port is `5433`** (not `5432`), set in `docker-compose.override.yml` to avoid clashing with other local projects. Grafana reaches PostgreSQL in-network on `postgres:5432`.
 
 Start the stack (PowerShell, from the project folder):

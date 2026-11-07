@@ -62,17 +62,6 @@ policies:
         group_wait: 30s
         group_interval: 5m
         repeat_interval: 1h
-      - receiver: kafka-line-webhook
-        object_matchers:
-          - - project
-            - =
-            - kafka_vm_postgres_bi
-          - - severity
-            - =
-            - critical
-        group_by:
-          - alertname
-          - severity
-        group_wait: 30s
-        group_interval: 5m
-        repeat_interval: 1h
+deleteContactPoints:
+  - orgId: 1
+    uid: kafka_line_webhook

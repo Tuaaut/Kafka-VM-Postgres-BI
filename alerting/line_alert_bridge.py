@@ -94,6 +94,10 @@ def format_grafana_alert(payload):
 
 
 def send_line_message(text):
+    enabled = os.getenv("LINE_ALERTS_ENABLED", "false").strip().lower()
+    if enabled not in {"1", "true", "yes", "on"}:
+        return {"sent": False, "reason": "LINE alerts are disabled"}
+
     token = os.getenv("LINE_CHANNEL_ACCESS_TOKEN", "").strip()
     to_id = os.getenv("LINE_TO_ID", "").strip()
     send_mode = os.getenv("LINE_SEND_MODE", "push").strip().lower()

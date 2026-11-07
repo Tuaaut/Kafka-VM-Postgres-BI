@@ -4,6 +4,21 @@ Shell convention: `powershell` examples run on Windows. `bash` examples run on t
 
 This file records the current known state of the project so we can return later without guessing.
 
+## LINE alert channel decommission — 2026-11-08
+
+Request: disable only LINE notifications for this demo. Keep Gmail, Grafana, Kafka, PostgreSQL, scheduled VM hours, and shutdown exports.
+
+Progress (4/5 steps):
+1. Confirmed this checkout was clean before edits and GCP VM `kafka-postgres-bi-sg` is `TERMINATED`.
+2. Removed the LINE contact-point provisioning and critical LINE policy route from the repo; retained Gmail routing.
+3. Removed the LINE bridge from Docker Compose and added a default-off sender guard so legacy manual entry points cannot send without explicit re-enabling.
+4. Staged a GCP startup-script change to apply the LINE-disabled config after its existing `git pull` and before Compose starts.
+5. Pending: next scheduled startup must apply the staged change; then verify Gmail routing, LINE contact-point deletion, orphan bridge removal, and export/schedule health.
+
+Deployment status: the VM remains stopped. Its startup-script metadata is the only GCP deployment change staged while it is stopped; files on the boot disk cannot be confirmed until the next scheduled startup. The startup script will stop/remove the old LINE bridge, delete the LINE contact point, remove its policy route, and force `LINE_ALERTS_ENABLED=false` in this VM project's `.env`. It preserves token values and does not revoke or rotate any token. The inline startup change reapplies the suppression after the existing `git pull` on each boot.
+
+See [alerting and monitoring](alerting_monitoring.md) and [LINE alerting history](line_official_account_alerting.md).
+
 ## Cloud-first Windows workflow — 2026-09-05
 
 Decision: use Grafana during the scheduled cloud demo and exported CSV files afterward. A desktop database client and persistent PostgreSQL tunnel are outside the project workflow. Local pipeline execution is optional development only.
@@ -32,13 +47,13 @@ Re-established the local Docker stack on Windows as a development/testing sandbo
 
 Changes:
 1. Added `.env.example`. It was referenced in the README, five docs, and two scripts but missing from the folder. Values derived from `docker-compose.yml` and the producer/consumer/bridge code; no secrets.
-2. Added `docker-compose.override.yml` for local-only settings: PostgreSQL host port `5433` (5432 is taken by another local project) and `line-alert-bridge` moved to a non-default `alerting` profile. `docker-compose.yml` stays identical to the VM.
+2. Added `docker-compose.override.yml` for local-only settings: PostgreSQL host port `5433` (5432 is taken by another local project) and local alert delivery disabled. `docker-compose.yml` stays identical to the VM.
 3. Removed two stray DBeaver JVM crash logs (`hs_err_pid892.log`, `replay_pid892.log`) from the project root.
 4. Fixed a hard-coded WSL path in `docs/local_runbook.md`.
 
 Verified: `docker compose up -d` brings up five services (kafka, postgres, consumer, producer, grafana) and no alerting containers. End-to-end flow confirmed: producer -> Kafka -> consumer -> PostgreSQL -> control-room views. `control_room_current_status` returned `CRITICAL` from the seed data (about 50% failure rate in the opening window), which settles toward `NORMAL` as steady-state events accumulate. The whole stack used about 440 MiB RAM. Grafana health reported `database: ok`.
 
-Alerting is intentionally inert locally: `GRAFANA_SMTP_ENABLED=false` and the LINE bridge is not started. Alert rules still evaluate so state is visible in the Grafana UI, but nothing is delivered. The cloud VM remains the only environment that sends Gmail/LINE alerts.
+Alerting is intentionally inert locally: `GRAFANA_SMTP_ENABLED=false` and no LINE bridge service is defined. Alert rules still evaluate so state is visible in Grafana, but nothing is delivered. The cloud VM is the only environment configured to send Gmail alerts.
 
 There is no local schedule: the stack is started and stopped on demand. The Saturday 08:45-11:00 Asia/Bangkok window is a GCP instance schedule for VM cost control only.
 
@@ -273,67 +288,10 @@ docker-compose.yml
 
 If SMTP needs to be reconfigured later, use `scripts/configure_gmail_alerts.sh`. Use a Gmail App Password, not the normal Gmail password.
 
-## Confirmed LINE Alerting Result
+## ## Historical LINE Alerting Result (before 2026-11-08)
 
-LINE alerting is prepared as the fast mobile response channel.
-
-Completed:
-
-```text
-LINE Official Account was created.
-Messaging API was enabled.
-LINE channel access token was generated and saved only in local .env.
-LINE bridge was added for Grafana webhook payloads.
-Broadcast mode was added so first testing does not require LINE_TO_ID.
-Real LINE Messaging API test returned HTTP 200.
-Full Grafana-to-LINE route test returned HTTP 200 from the LINE bridge.
-```
-
-Current LINE resources:
-
-```text
-Official Account name: Kafka Alert Bot
-Basic ID: @658ndqox
-Provider: Kafka Monitoring Demo
-Channel ID: 2010459362
-Current send mode: broadcast
-Current target: LINE Official Account friends/followers
-Grafana route status: critical project alerts routed to LINE
-```
-
-Current local secret handling:
-
-```text
-LINE_CHANNEL_ACCESS_TOKEN is stored in local .env only.
-.env is ignored by Git.
-LINE tokens and secrets must not be written into Markdown docs.
-```
-
-Useful files:
-
-```text
-docs/line_official_account_alerting.md
-alerting/line_alert_bridge.py
-scripts/configure_line_alerts.sh
-scripts/run_line_bridge_local.sh
-scripts/test_line_alert.sh
-grafana/provisioning/alerting/line_webhook_contact_point.yml
-```
-
-Current limitation:
-
-```text
-True LINE group-chat push is not enabled yet because groupId has not been captured.
-```
-
-Next LINE step:
-
-```text
-For the current MVP, run the LINE bridge with Docker Compose and use broadcast mode.
-For future group-chat push, capture groupId and switch LINE_SEND_MODE=push.
-```
-
-## Current Database Objects
+Before decommissioning, the LINE Official Account and Grafana route had passed a direct API check and a Grafana-to-bridge delivery check. Those results are historical. The current state and remaining step are recorded in the decommission entry at the top of this file. Do not use the old broadcast/test steps below this point.
+Current Database Objects
 
 Tables:
 
@@ -426,29 +384,7 @@ gcloud compute ssh kafka-postgres-bi-sg --project YOUR_GCP_PROJECT_ID --zone asi
 
 ## Next Step
 
-Continue validating the Singapore VM dashboard and resource usage. The next optional build step is LINE group-chat alerting for immediate response, while Gmail remains the official searchable alert record.
-
-LINE alerting progress:
-
-```text
-LINE alert bridge is prepared.
-Local formatting test passed.
-Real LINE Messaging API broadcast test passed.
-Docker Compose starts the LINE bridge as part of the default stack.
-Grafana LINE webhook contact point is routed for critical project alerts.
-Full Grafana-to-LINE route test passed with POST /grafana HTTP 200.
-True group-chat push is waiting for groupId capture and LINE_SEND_MODE=push.
-```
-
-LINE cost-control decision:
-
-```text
-Send only CRITICAL alerts to LINE at first.
-Keep WARNING alerts in Grafana/Gmail.
-Disable resolved LINE messages by default.
-Use a small test group to keep message usage low.
-```
-
+At the next scheduled VM startup, confirm Gmail routing is intact, the LINE contact point and bridge are gone, and the shutdown export and schedule remain unchanged.
 Useful local dashboard sources:
 
 ```text

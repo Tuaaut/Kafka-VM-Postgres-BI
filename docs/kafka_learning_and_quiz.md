@@ -547,7 +547,7 @@ The goal is to learn by answering questions, not by duplicating the project docu
     - D. Change the Git remote
     - Answer: A. The action plan starts with dashboard confirmation.
 
-## Section 6: Gmail, LINE, and Alert Routing
+## Section 6: Gmail and Alert Routing (LINE History)
 
 1. What is Gmail used for in the alerting design?
    - A. Official searchable alert history
@@ -556,19 +556,19 @@ The goal is to learn by answering questions, not by duplicating the project docu
    - D. Docker networking
    - Answer: A. Gmail keeps the alert record easy to search.
 
-2. What is LINE used for in the alerting design?
+2. Before decommissioning, what was LINE used for in the alerting design?
    - A. Fast mobile response for critical incidents
    - B. SQL query execution
    - C. VM disk storage
    - D. Kafka message retention
-   - Answer: A. LINE is for quick attention.
+   - Answer: A. Historically, LINE was used for quick attention; the channel was decommissioned on 2026-11-08.
 
-3. Why use both Gmail and LINE?
+3. Why did the project historically use both Gmail and LINE?
    - A. Gmail is good for history; LINE is good for immediate response
    - B. They do exactly the same thing with no benefit
    - C. Kafka requires both
    - D. PostgreSQL cannot work without both
-   - Answer: A. The two channels serve different operational needs.
+   - Answer: A. They served different needs; Gmail remains active and LINE is retired.
 
 4. Which contact point sends email?
    - A. `kafka-gmail-email`
@@ -577,33 +577,33 @@ The goal is to learn by answering questions, not by duplicating the project docu
    - D. `control_room_alert_feed`
    - Answer: A. `kafka-gmail-email` is the Gmail contact point.
 
-5. Which contact point sends critical alerts to the LINE bridge?
+5. Which contact point previously sent critical alerts to the LINE bridge?
    - A. `kafka-line-webhook`
    - B. `kafka-gmail-email`
    - C. `postgres-writer`
    - D. `kafka_vm_postgres`
-   - Answer: A. It posts Grafana webhook payloads to the bridge.
+   - Answer: A. It posted webhooks to the bridge and has since been removed.
 
-6. Why does the Gmail route use `continue: true`?
+6. Why did the Gmail route use `continue: true` before LINE was retired?
    - A. So matching critical alerts can continue to the LINE route too
    - B. So Gmail stops receiving alerts
    - C. So Kafka restarts
    - D. So PostgreSQL ignores rows
-   - Answer: A. It enables dual delivery for critical alerts.
+   - Answer: A. It allowed matching critical alerts to continue to the LINE route.
 
-7. Which alerts are routed to LINE first?
+7. Which alerts were routed to LINE before decommissioning?
    - A. Critical project alerts
    - B. Every warning and resolved alert
    - C. Only Git commits
    - D. Only successful events
-   - Answer: A. LINE is intentionally critical-only for low noise.
+   - Answer: A. Only critical project alerts were routed to LINE.
 
-8. What is the current LINE send mode?
+8. What send mode did the project previously use for LINE?
    - A. `broadcast`
    - B. `push` only
    - C. `smtp`
    - D. `kafka`
-   - Answer: A. Broadcast sends to LINE Official Account friends.
+   - Answer: A. The previous integration used broadcast mode.
 
 9. What does future `push` mode require?
    - A. `LINE_TO_ID` such as a userId, groupId, or roomId
@@ -612,21 +612,21 @@ The goal is to learn by answering questions, not by duplicating the project docu
    - D. Grafana admin password only
    - Answer: A. Push mode needs a target ID.
 
-10. Where does the current LINE bridge run?
+10. Where did the previous LINE bridge run?
     - A. As a Docker Compose container in the project stack
     - B. As Cloud Run
     - C. As a browser plugin
     - D. As a PostgreSQL trigger
-    - Answer: A. The current bridge is a Compose service.
+   - Answer: A. It ran as a Compose service before that service was removed.
 
 11. Does the project currently use Cloud Run for alerting?
     - A. No
     - B. Yes, all alerts go through Cloud Run
     - C. Yes, Kafka is Cloud Run
     - D. Yes, Gmail requires Cloud Run
-    - Answer: A. Cloud Run is only a future option.
+   - Answer: A. Gmail alerting runs in Grafana on the VM; no Cloud Run bridge is deployed.
 
-12. Why avoid Cloud Run right now?
+12. Why is Cloud Run not used for the current Gmail-only alerting?
     - A. The in-stack bridge works and avoids extra service cost
     - B. Cloud Run cannot run HTTP services
     - C. LINE requires Cloud Run to be disabled
@@ -831,7 +831,7 @@ The goal is to learn by answering questions, not by duplicating the project docu
     - B. No alerts vs no dashboard
     - C. No database vs no events
     - D. No Docker vs no repo
-    - Answer: A. The project prioritizes a controlled UAT/demo window and retained snapshots over always-on runtime.
+   - Answer: A. Gmail alerting does not require Cloud Run, and the project keeps the demo low cost.
 
 11. What should you say if asked why PostgreSQL is used?
     - A. It is the operational serving layer for Grafana, SQL views, validation, and alerts
@@ -847,12 +847,12 @@ The goal is to learn by answering questions, not by duplicating the project docu
     - D. It is the Git hosting service
     - Answer: A. Kafka is the streaming backbone.
 
-13. What should you say if asked why Gmail and LINE are both used?
+13. What should you say if asked about the former Gmail and LINE design?
     - A. Gmail is for history and audit; LINE is for fast response
     - B. They are required by PostgreSQL
     - C. They replace Grafana
     - D. They are both databases
-    - Answer: A. This explains the two-channel design clearly.
+   - Answer: A. Gmail is still used for searchable history; LINE's faster-response role ended when it was decommissioned.
 
 14. What should you say if asked how cost is controlled?
     - A. Small VM, low event rate, scheduled start/stop, short-retention GCS export, avoid Cloud Run until needed
@@ -862,7 +862,7 @@ The goal is to learn by answering questions, not by duplicating the project docu
     - Answer: A. These are the main cost-control choices.
 
 15. What is the best 60-second architecture explanation?
-    - A. Scheduled VM starts the Docker stack; simulated machines publish events to Kafka; a consumer stores valid events in PostgreSQL; SQL views calculate plant status; Grafana visualizes and alerts; Gmail records alerts; LINE sends fast critical notifications; before shutdown, PostgreSQL snapshots are exported to GCS for later review.
+    - A. Scheduled VM starts the Docker stack; simulated machines publish events to Kafka; a consumer stores valid events in PostgreSQL; SQL views calculate plant status; Grafana visualizes and emails alerts through Gmail; LINE notification was decommissioned; before shutdown, PostgreSQL snapshots are exported to GCS.
     - B. Gmail sends Kafka to GitHub and Docker reads screenshots.
     - C. PostgreSQL creates QR codes and LINE stores VM disks.
     - D. Cloud Run is required for every alert even though it is not built.

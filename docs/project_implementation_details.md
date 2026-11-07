@@ -193,7 +193,7 @@ Move to e2-medium only if resource monitoring shows pressure.
 
 ### Phase 4: Alerting Workflow
 
-Status: Gmail email alerting implemented and verified locally.
+Status: Gmail email alerting implemented and verified locally. LINE was decommissioned on 2026-11-08.
 
 Current implementation:
 
@@ -215,7 +215,7 @@ Completed:
 - Email body was customized with status, severity, impact, action plan, dashboard link, silence link, and resolution note.
 - `GRAFANA_ROOT_URL` points alert email links to the VM public Grafana base URL.
 
-Next optional extension:
+Historical optional extension (not active):
 
 ```text
 Grafana webhook
@@ -384,7 +384,7 @@ docker compose down
 1. Continue validating the Singapore e2-small VM during the scheduled UAT/demo window.
 2. Monitor whether the Saturday 08:45-11:00 runtime is enough for normal demos.
 3. Capture dashboard screenshots for the portfolio.
-4. Move to true LINE group-chat push only if group collaboration is needed.
-5. Consider Cloud Run alert bridge later only if public webhook access, retries, audit logging, or multi-channel routing become important.
+4. Verify the LINE contact point and bridge are absent at the next scheduled VM startup.
+5. Keep Gmail as the only configured notification channel unless requirements change.
 6. Keep PostgreSQL private; use browser SSH and psql inside the running VM for occasional diagnostics.
 7. Upgrade to e2-medium only if resource checks show pressure.

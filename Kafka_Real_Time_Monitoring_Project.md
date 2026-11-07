@@ -41,7 +41,7 @@ Working
 Current GCP status:
 
 ```text
-Working on Singapore e2-small VM
+Deployed on Singapore e2-small VM; currently stopped
 VM: kafka-postgres-bi-sg
 Zone: asia-southeast1-a
 Grafana tunnel: http://localhost:3001
@@ -52,9 +52,9 @@ Alert email root URL: http://136.110.54.120:3000
 Current alerting status:
 
 ```text
-Gmail alerting: configured and verified for official searchable alert history
-LINE alerting: LINE Official Account created and Messaging API broadcast test passed
-LINE group push: not enabled yet; requires groupId capture and push-mode routing
+Gmail: active notification channel for searchable alert history
+LINE: decommissioned on 2026-11-08; startup metadata applies removal before Compose starts
+Next verification: confirm Gmail routing and absence of LINE contact point/bridge after scheduled startup
 ```
 
 Current VM scheduling status:
@@ -124,7 +124,6 @@ Machine / Production Line Simulator
    Grafana Dashboard
        Real-Time Monitoring
        Gmail Alert History
-       LINE Fast Mobile Alerting
 
 
 Future Historical Pipeline
@@ -196,11 +195,10 @@ Why Grafana is the dashboard layer:
 - It is easier to share with viewers than direct database access.
 - It keeps the operational dashboard separate from deeper historical analytics.
 
-Why alerting uses two channels:
+Current alerting:
 
-- Gmail keeps an official searchable record of alerts.
-- LINE gives faster mobile attention for critical incidents.
-- Critical alerts can reach technicians quickly while Gmail keeps the audit trail.
+- Gmail keeps the official searchable record of alerts.
+- LINE delivery was decommissioned on 2026-11-08.
 
 The final architecture is intentionally balanced:
 
@@ -552,12 +550,12 @@ Completed:
 - Alert email message customized with impact, action plan, dashboard link, and resolution note.
 - Alert email links use the VM public Grafana root URL.
 
-Next optional channel:
+Historical LINE extension (retired):
 
 ```text
 Grafana webhook
 → LINE Messaging API or Cloud Run bridge
-→ LINE group chat
+→ LINE group chat (no longer configured)
 ```
 
 ## Portfolio Value

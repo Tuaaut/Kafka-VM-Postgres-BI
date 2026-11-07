@@ -90,30 +90,12 @@ services:
       GF_SMTP_FROM_NAME: "${GRAFANA_SMTP_FROM_NAME:-Kafka Monitoring Grafana}"
       GF_SMTP_STARTTLS_POLICY: "${GRAFANA_SMTP_STARTTLS_POLICY:-MandatoryStartTLS}"
       GRAFANA_ALERT_EMAIL_TO: "${GRAFANA_ALERT_EMAIL_TO:-grafana-alerts@example.invalid}"
-      LINE_ALERT_WEBHOOK_URL: "${LINE_ALERT_WEBHOOK_URL:-http://line-alert-bridge:8080/grafana}"
     ports:
       - "3000:3000"
     volumes:
       - grafana_data:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
       - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
-
-  line-alert-bridge:
-    build: .
-    container_name: kafka_vm_line_alert_bridge
-    environment:
-      PORT: 8080
-      LINE_CHANNEL_ACCESS_TOKEN: "${LINE_CHANNEL_ACCESS_TOKEN:-}"
-      LINE_CHANNEL_SECRET: "${LINE_CHANNEL_SECRET:-}"
-      LINE_SEND_MODE: "${LINE_SEND_MODE:-broadcast}"
-      LINE_TO_ID: "${LINE_TO_ID:-}"
-      LINE_MIN_SEVERITY: "${LINE_MIN_SEVERITY:-critical}"
-      LINE_DISABLE_RESOLVED: "${LINE_DISABLE_RESOLVED:-true}"
-      GRAFANA_ROOT_URL: "${GRAFANA_ROOT_URL:-http://localhost:3000}"
-    command: ["python", "-u", "alerting/line_alert_bridge.py"]
-    restart: unless-stopped
-    ports:
-      - "8080:8080"
 
 volumes:
   postgres_data:

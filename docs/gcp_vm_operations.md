@@ -50,8 +50,7 @@ GCP Compute Engine VM
     ├── PostgreSQL container
     ├── Grafana container
     ├── Producer container
-    ├── Consumer container
-    └── LINE alert bridge container
+    └── Consumer container
 ```
 
 Grafana does not read JSON files directly. The current serving path is:
@@ -263,7 +262,7 @@ The startup script starts the Docker Compose stack.
 The startup script installs/enables the pre-shutdown GCS export service.
 Producer emits 10 events every 60 seconds.
 Grafana reads PostgreSQL and evaluates alert rules.
-Critical alerts route to Gmail and LINE.
+Alerts route to Gmail. LINE delivery was decommissioned on 2026-11-08; the next scheduled startup applies the removal before Compose starts.
 Before shutdown, the VM exports PostgreSQL snapshots to GCS.
 Compute Engine stops the VM every Saturday at 11:00 Asia/Bangkok.
 ```

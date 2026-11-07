@@ -80,8 +80,7 @@ GCP Compute Engine VM
 │   ├── PostgreSQL container: postgres:16
 │   ├── Grafana container: grafana/grafana-oss
 │   ├── Producer container
-│   ├── Consumer container
-│   └── LINE alert bridge container
+│   └── Consumer container
 └── Users open Grafana in a browser
 ```
 
@@ -293,5 +292,5 @@ gcloud compute instances start kafka-postgres-bi-sg --project YOUR_GCP_PROJECT_I
 - VM resource usage checked.
 - Instance schedule created and attached.
 - Startup script configured and tested.
-- Full scheduled-start stack verified, including LINE alert bridge.
+- Full scheduled-start stack was verified before LINE was retired; next-boot confirmation of the LINE removal is pending.
 - Screenshots captured for portfolio.

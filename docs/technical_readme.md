@@ -23,6 +23,7 @@ Validated locally:
 - Grafana dashboard `Kafka Machine Monitoring Control Room` is provisioned.
 - Grafana local alert rules are provisioned for critical plant state and high ingest lag.
 - Grafana Gmail email contact point is provisioned and verified.
+- LINE notification delivery was decommissioned on 2026-11-08; Gmail remains the active alert channel.
 - Gmail SMTP is configured in local `.env`; the App Password is kept out of Git.
 - Real Grafana alert email delivery was tested with `Plant State Critical`.
 - Alert email content now includes operations-friendly summary, impact, action plan, dashboard link, and resolution note.
@@ -241,7 +242,7 @@ No native PostgreSQL install is required on the Windows workstation because Post
 
 - `Kafka_Real_Time_Monitoring_Project.md` - original project brief and target architecture.
 - `Dockerfile` - Python image used by the producer and consumer containers.
-- `docker-compose.yml` - Kafka, PostgreSQL, Grafana, producer, consumer, and LINE alert bridge services.
+- `docker-compose.yml` - Kafka, PostgreSQL, Grafana, producer, and consumer services; LINE bridge removed.
 - `docker-compose.override.yml` - local-only overrides (PostgreSQL host port 5433, alerting excluded). Auto-merged by `docker compose`; keeps `docker-compose.yml` identical to the VM.
 - `.env.example` - default local connection and producer settings; copy to `.env`.
 - `producer/` - Python event producer for simulated machine data.
@@ -283,4 +284,4 @@ No native PostgreSQL install is required on the Windows workstation because Post
 
 ## Next Build Step
 
-Keep testing the Singapore `e2-small` VM during the scheduled UAT window and monitor capacity. Gmail and LINE broadcast alerting are complete for the current design. The next optional alerting enhancement is true LINE group-chat push or a future Cloud Run alert bridge if the project needs a more production-style integration layer.
+Keep validating the Singapore `e2-small` VM during the scheduled UAT window and monitor capacity. Gmail is the only active notification channel. The LINE channel was decommissioned on 2026-11-08; verify its contact point and old bridge are gone at the next scheduled VM startup.

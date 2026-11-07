@@ -15,7 +15,6 @@ Windows workstation
 → PostgreSQL container
 → Python producer and consumer containers
 → Grafana
-→ optional LINE alert bridge
 ```
 
 Local services:

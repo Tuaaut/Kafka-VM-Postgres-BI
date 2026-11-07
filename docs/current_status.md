@@ -12,10 +12,10 @@ Progress (4/5 steps):
 1. Confirmed this checkout was clean before edits and GCP VM `kafka-postgres-bi-sg` is `TERMINATED`.
 2. Removed the LINE contact-point provisioning and critical LINE policy route from the repo; retained Gmail routing.
 3. Removed the LINE bridge from Docker Compose and added a default-off sender guard so legacy manual entry points cannot send without explicit re-enabling.
-4. Staged a GCP startup-script change to apply the LINE-disabled config after its existing `git pull` and before Compose starts.
+4. Pushed the repo changes to `origin/main` at commit `4c6464b`; staged a GCP startup-script guard that applies the same LINE-disabled config after its existing `git pull` and before Compose starts.
 5. Pending: next scheduled startup must apply the staged change; then verify Gmail routing, LINE contact-point deletion, orphan bridge removal, and export/schedule health.
 
-Deployment status: the VM remains stopped. Its startup-script metadata is the only GCP deployment change staged while it is stopped; files on the boot disk cannot be confirmed until the next scheduled startup. The startup script will stop/remove the old LINE bridge, delete the LINE contact point, remove its policy route, and force `LINE_ALERTS_ENABLED=false` in this VM project's `.env`. It preserves token values and does not revoke or rotate any token. The inline startup change reapplies the suppression after the existing `git pull` on each boot.
+Deployment status: the VM remains stopped. Its startup-script metadata is the only GCP deployment change staged while it is stopped; files on the boot disk cannot be confirmed until the next scheduled startup. The script removes the old LINE bridge as early as it runs, deletes the contact point and policy route after the existing `git pull`, forces `LINE_ALERTS_ENABLED=false` in this VM project's `.env`, and restarts Grafana to load provisioning. It preserves token values and does not revoke or rotate any token. Docker may auto-restart the old container before the metadata script begins; this timing can only be confirmed at the next scheduled boot.
 
 See [alerting and monitoring](alerting_monitoring.md) and [LINE alerting history](line_official_account_alerting.md).
 
